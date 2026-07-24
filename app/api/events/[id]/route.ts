@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
 import { requireUser, json, error } from "@/lib/api";
 import { caregiverRole } from "@/lib/auth";
+import { isEventType } from "@/lib/events";
 import { broadcast } from "@/lib/realtime";
 
 async function loadOwned(userId: string, eventId: string) {
@@ -16,6 +17,7 @@ async function loadOwned(userId: string, eventId: string) {
 }
 
 const Body = z.object({
+  type: z.string().optional(),
   start_time: z.string().optional(),
   end_time: z.string().nullable().optional(),
   data: z.record(z.string(), z.any()).optional(),
@@ -31,10 +33,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return error("Invalid update");
-  const { start_time, end_time, data, note } = parsed.data;
+  const { type, start_time, end_time, data, note } = parsed.data;
+  if (type && !isEventType(type)) return error("Unknown event type");
 
   const rows = await query(
     `update events set
+        type       = coalesce($9, type),
         start_time = coalesce($2, start_time),
         end_time   = case when $3::boolean then $4 else end_time end,
         data       = coalesce($5, data),
@@ -52,6 +56,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       note !== undefined,
       note ?? null,
       user.id,
+      type ?? null,
     ]
   );
   broadcast(ev.child_id, { kind: "event.updated", event: rows[0] });

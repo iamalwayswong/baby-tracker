@@ -18,6 +18,7 @@ const Create = z.object({
 });
 const Update = z.object({
   id: z.string().uuid(),
+  type: z.string().optional(),
   start_time: z.string().optional(),
   end_time: z.string().nullable().optional(),
   data: z.record(z.string(), z.any()).optional(),
@@ -60,8 +61,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     for (const u of updates) {
+      if (u.type && !isEventType(u.type)) throw new Error(`Unknown event type: ${u.type}`);
       const { rows } = await client.query(
         `update events set
+            type       = coalesce($10, type),
             start_time = coalesce($3, start_time),
             end_time   = case when $4::boolean then $5 else end_time end,
             data       = coalesce($6, data),
@@ -79,6 +82,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           u.note !== undefined,
           u.note ?? null,
           user.id,
+          u.type ?? null,
         ]
       );
       if (rows[0]) updated.push({ ...rows[0], created_by_name: user.name });
