@@ -14,7 +14,7 @@ export default function ChildrenList({
   initialChildren: Child[];
 }) {
   const router = useRouter();
-  const [children, setChildren] = useState<Child[]>(initialChildren);
+  const [children] = useState<Child[]>(initialChildren);
   const [adding, setAdding] = useState(initialChildren.length === 0);
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
@@ -28,10 +28,10 @@ export default function ChildrenList({
       const { child } = await api<{ child: Child }>("/api/children", {
         json: { name, birth_date: birthDate || null, sex },
       });
-      setChildren((c) => [...c, child]);
-      setName("");
-      setBirthDate("");
-      setAdding(false);
+      // jump straight into the kid you just created
+      router.push(`/child/${child.id}`);
+      router.refresh();
+      return;
     } finally {
       setBusy(false);
     }

@@ -19,9 +19,9 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setBusy(true);
     try {
       await api(`/api/auth/${mode}`, { json: isSignup ? { name, email, password } : { email, password } });
-      // preserve ?next= for invite flows
+      // preserve ?next= for invite flows; otherwise let "/" decide where to land
       const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next || "/children");
+      router.push(next || "/");
       router.refresh();
     } catch (err: any) {
       setError(err.message);

@@ -23,12 +23,12 @@ export default async function ChildPage({ params }: { params: { id: string } }) 
     [params.id]
   );
 
-  return (
-    <ChildTimeline
-      child={child}
-      role={role}
-      currentUserId={user.id}
-      initialEvents={events}
-    />
+  // how many kids this user has, so we only show "‹ Kids" when it's useful
+  const siblings = await query<{ n: string }>(
+    "select count(*)::text as n from caregivers where user_id = $1",
+    [user.id]
   );
+  const siblingCount = Number(siblings[0]?.n ?? "1");
+
+  return <ChildTimeline child={child} initialEvents={events} siblingCount={siblingCount} />;
 }

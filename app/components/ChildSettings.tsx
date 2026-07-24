@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
 
@@ -14,6 +15,7 @@ export default function ChildSettings({
   role: string;
   caregivers: Caregiver[];
 }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +99,19 @@ export default function ChildSettings({
       ) : (
         <p className="mt-8 text-sm text-gray-400">Only the owner can invite more caregivers.</p>
       )}
+
+      <div className="mt-10 border-t border-gray-100 pt-6">
+        <button
+          onClick={async () => {
+            await api("/api/auth/logout", { method: "POST" });
+            router.push("/login");
+            router.refresh();
+          }}
+          className="tap text-sm font-medium text-gray-400 active:text-gray-600"
+        >
+          Log out
+        </button>
+      </div>
     </div>
   );
 }

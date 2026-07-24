@@ -23,13 +23,12 @@ type Sheet = { kind: "nursing" } | { kind: "log"; type: EventType } | null;
 
 export default function ChildTimeline({
   child,
-  role,
   initialEvents,
+  siblingCount = 1,
 }: {
   child: { id: string; name: string; birth_date: string | null; sex: string };
-  role: string;
-  currentUserId: string;
   initialEvents: EventRow[];
+  siblingCount?: number;
 }) {
   const [events, setEvents] = useState<EventRow[]>(initialEvents);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -102,18 +101,27 @@ export default function ChildTimeline({
     <div className="min-h-dvh pb-28">
       {/* header */}
       <header className="sticky top-0 z-10 flex items-center justify-between bg-white/90 px-5 py-4 backdrop-blur">
-        <Link href="/children" className="tap text-gray-400 active:text-gray-600">
-          ‹ Kids
-        </Link>
+        {siblingCount > 1 ? (
+          <Link href="/children" className="tap text-gray-400 active:text-gray-600">
+            ‹ Kids
+          </Link>
+        ) : (
+          <span className="w-10" />
+        )}
         <div className="text-center">
           <h1 className="font-bold leading-tight">{child.name}</h1>
           <span className={`text-xs ${status === "open" ? "text-emerald-500" : "text-gray-400"}`}>
             {status === "open" ? "● live" : "connecting…"}
           </span>
         </div>
-        <Link href={`/child/${child.id}/settings`} className="tap text-gray-400 active:text-gray-600">
-          ⚙
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href={`/child/${child.id}/manage`} className="tap text-gray-400 active:text-gray-600" title="All entries">
+            ▦
+          </Link>
+          <Link href={`/child/${child.id}/settings`} className="tap text-gray-400 active:text-gray-600" title="Settings">
+            ⚙
+          </Link>
+        </div>
       </header>
 
       {/* in-progress banners */}
