@@ -5,17 +5,25 @@ import { Pool } from "pg";
 // instances — reuse the same connections instead of each opening a pool.
 const g = globalThis as unknown as { __pgPool?: Pool };
 
+/**
+ * SSL config for pg. PGSSL forces it ("true"/"false"); otherwise auto-detect:
+ * Railway's private network (*.railway.internal) does NOT serve SSL, so we must
+ * NOT request it there. Public hosts (proxy.rlwy.net, most managed PG) do.
+ */
+export function sslConfig(connectionString: string): false | { rejectUnauthorized: boolean } {
+  if (process.env.PGSSL === "false") return false;
+  if (process.env.PGSSL === "true") return { rejectUnauthorized: false };
+  if (connectionString.includes(".railway.internal") || connectionString.includes("localhost")) return false;
+  return { rejectUnauthorized: false };
+}
+
 export function getPool(): Pool {
   if (!g.__pgPool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error("DATABASE_URL is not set");
     }
-    g.__pgPool = new Pool({
-      connectionString,
-      // Railway Postgres requires SSL; local dev usually does not.
-      ssl: process.env.PGSSL === "false" ? false : { rejectUnauthorized: false },
-    });
+    g.__pgPool = new Pool({ connectionString, ssl: sslConfig(connectionString) });
   }
   return g.__pgPool;
 }

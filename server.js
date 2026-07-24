@@ -19,9 +19,16 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 
 // Small pool just for WS auth (caregiver membership check).
+// SSL: PGSSL forces it; else auto — Railway's private network serves no SSL.
+function sslConfig(cs) {
+  if (process.env.PGSSL === "false") return false;
+  if (process.env.PGSSL === "true") return { rejectUnauthorized: false };
+  if (!cs || cs.includes(".railway.internal") || cs.includes("localhost")) return false;
+  return { rejectUnauthorized: false };
+}
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.PGSSL === "false" ? false : { rejectUnauthorized: false },
+  ssl: sslConfig(process.env.DATABASE_URL),
 });
 
 // child_id -> set of live sockets
