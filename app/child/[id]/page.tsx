@@ -24,12 +24,12 @@ export default async function ChildPage({ params }: { params: { id: string } }) 
     [params.id]
   );
 
-  // how many kids this user has, so we only show "‹ Kids" when it's useful
-  const siblings = await query<{ n: string }>(
-    "select count(*)::text as n from caregivers where user_id = $1",
+  // all kids this user cares for, for the name-dropdown switcher
+  const siblings = await query<{ id: string; name: string }>(
+    `select c.id, c.name from children c join caregivers cg on cg.child_id = c.id
+      where cg.user_id = $1 order by c.created_at asc`,
     [user.id]
   );
-  const siblingCount = Number(siblings[0]?.n ?? "1");
 
-  return <ChildTimeline child={child} initialEvents={events} siblingCount={siblingCount} />;
+  return <ChildTimeline child={child} initialEvents={events} siblings={siblings} />;
 }

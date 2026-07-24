@@ -10,13 +10,15 @@ type Child = { id: string; name: string; birth_date: string | null; sex: string;
 export default function ChildrenList({
   userName,
   initialChildren,
+  startAdding = false,
 }: {
   userName: string;
   initialChildren: Child[];
+  startAdding?: boolean;
 }) {
   const router = useRouter();
   const [children] = useState<Child[]>(initialChildren);
-  const [adding, setAdding] = useState(initialChildren.length === 0);
+  const [adding, setAdding] = useState(startAdding || initialChildren.length === 0);
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [sex, setSex] = useState("unspecified");

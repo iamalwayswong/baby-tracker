@@ -18,6 +18,7 @@ import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
 import LogSheet from "./LogSheet";
 import EditEventSheet from "./EditEventSheet";
+import ChildSwitcher from "./ChildSwitcher";
 
 type EventRow = {
   id: string;
@@ -35,11 +36,11 @@ type Sheet = { kind: "nursing" } | { kind: "log"; type: EventType } | { kind: "e
 export default function ChildTimeline({
   child,
   initialEvents,
-  siblingCount = 1,
+  siblings = [],
 }: {
   child: { id: string; name: string; birth_date: string | null; sex: string };
   initialEvents: EventRow[];
-  siblingCount?: number;
+  siblings?: { id: string; name: string }[];
 }) {
   const [events, setEvents] = useState<EventRow[]>(initialEvents);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -111,16 +112,10 @@ export default function ChildTimeline({
   return (
     <div className="min-h-dvh pb-28">
       {/* header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-white/90 px-5 py-4 backdrop-blur">
-        {siblingCount > 1 ? (
-          <Link href="/children" className="tap text-gray-400 active:text-gray-600">
-            ‹ Kids
-          </Link>
-        ) : (
-          <span className="w-10" />
-        )}
-        <div className="text-center">
-          <h1 className="font-bold leading-tight">{child.name}</h1>
+      <header className="sticky top-0 z-20 flex items-center justify-between bg-white/90 px-5 py-4 backdrop-blur">
+        <span className="w-10" />
+        <div className="flex flex-col items-center">
+          <ChildSwitcher current={{ id: child.id, name: child.name }} siblings={siblings} />
           <span className={`text-xs ${status === "open" ? "text-emerald-500" : "text-gray-400"}`}>
             {status === "open" ? "● live" : "connecting…"}
           </span>
@@ -129,7 +124,7 @@ export default function ChildTimeline({
           <Link href={`/child/${child.id}/manage`} className="tap text-gray-400 active:text-gray-600" title="All entries">
             ▦
           </Link>
-          <Link href={`/child/${child.id}/settings`} className="tap text-gray-400 active:text-gray-600" title="Settings">
+          <Link href={`/child/${child.id}/settings`} className="tap text-gray-400 active:text-gray-600" title="This child's settings">
             ⚙
           </Link>
         </div>

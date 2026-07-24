@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import ChildrenList from "@/app/components/ChildrenList";
 
-export default async function ChildrenPage() {
+export default async function ChildrenPage({ searchParams }: { searchParams: { add?: string } }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -14,5 +14,5 @@ export default async function ChildrenPage() {
     [user.id]
   );
 
-  return <ChildrenList userName={user.name} initialChildren={children} />;
+  return <ChildrenList userName={user.name} initialChildren={children} startAdding={searchParams?.add === "1"} />;
 }

@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import { Button, Card, ConfirmModal, TextInput } from "@/app/components/ui";
@@ -25,7 +24,6 @@ export default function ChildSettings({
   caregivers: Caregiver[];
   initialInvites: Invite[];
 }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [invites, setInvites] = useState<Invite[]>(initialInvites);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +65,6 @@ export default function ChildSettings({
     } finally {
       setRevBusy(false);
     }
-  }
-
-  async function logout() {
-    await api("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
   }
 
   return (
@@ -140,12 +132,6 @@ export default function ChildSettings({
       ) : (
         <p className="mt-8 text-sm text-gray-400">Only the owner can invite more caregivers.</p>
       )}
-
-      <div className="mt-10 border-t border-gray-100 pt-6">
-        <button onClick={logout} className="tap text-sm font-medium text-gray-400 active:text-gray-600">
-          Log out
-        </button>
-      </div>
 
       {revoking && (
         <ConfirmModal
