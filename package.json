@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
-    "db:migrate": "tsx db/migrate.ts",
+    "start": "npm run db:migrate && NODE_ENV=production node server.js",
+    "db:migrate": "node db/migrate.js",
     "lint": "next lint"
   },
   "dependencies": {
