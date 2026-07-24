@@ -4,6 +4,7 @@ import Link from "next/link";
 import { api } from "@/lib/client";
 import { ALL_EVENT_TYPES, EVENT_DEFS, EventType } from "@/lib/events";
 import { toLocalInput, fromLocalInput } from "@/lib/format";
+import { FieldSpec, DETAIL_FIELDS, fieldDisplayValue, applyField } from "@/lib/detailFields";
 
 type EventRow = {
   id: string;
@@ -27,39 +28,6 @@ type Row = {
   loggedBy: string;
   dirty: boolean;
   isNew: boolean;
-};
-
-type FieldSpec =
-  | { key: string; label: string; kind: "number"; unit?: string; scale?: number }
-  | { key: string; label: string; kind: "text" }
-  | { key: string; label: string; kind: "select"; options: string[] };
-
-// Type-specific detail inputs shown in the "Details" cell.
-const DETAIL_FIELDS: Partial<Record<EventType, FieldSpec[]>> = {
-  feed_breast: [
-    { key: "left_seconds", label: "L", kind: "number", unit: "m", scale: 60 },
-    { key: "right_seconds", label: "R", kind: "number", unit: "m", scale: 60 },
-  ],
-  feed_bottle: [
-    { key: "volume_ml", label: "", kind: "number", unit: "ml" },
-    { key: "contents", label: "", kind: "select", options: ["breastmilk", "formula", "mixed"] },
-  ],
-  feed_solid: [{ key: "foods", label: "foods", kind: "text" }],
-  pump: [
-    { key: "left_ml", label: "L", kind: "number", unit: "ml" },
-    { key: "right_ml", label: "R", kind: "number", unit: "ml" },
-  ],
-  diaper: [{ key: "kind", label: "", kind: "select", options: ["wet", "dirty", "mixed"] }],
-  growth: [
-    { key: "weight_g", label: "wt", kind: "number", unit: "g" },
-    { key: "height_cm", label: "ht", kind: "number", unit: "cm" },
-    { key: "head_cm", label: "head", kind: "number", unit: "cm" },
-  ],
-  medicine: [
-    { key: "name", label: "", kind: "text" },
-    { key: "dose", label: "dose", kind: "text" },
-  ],
-  temperature: [{ key: "celsius", label: "°C", kind: "number" }],
 };
 
 function toRow(e: EventRow): Row {
@@ -107,28 +75,9 @@ export default function EventsGrid({
 
   function setDetail(key: string, f: FieldSpec, raw: string) {
     setRows((rs) =>
-      rs.map((r) => {
-        if (r.key !== key) return r;
-        const data = { ...r.data };
-        if (f.key === "foods") {
-          data.foods = raw.split(",").map((s) => s.trim()).filter(Boolean);
-        } else if (f.kind === "number") {
-          const scale = "scale" in f && f.scale ? f.scale : 1;
-          data[f.key] = raw === "" ? undefined : Number(raw) * scale;
-        } else {
-          data[f.key] = raw || undefined;
-        }
-        return { ...r, data, dirty: true };
-      })
+      rs.map((r) => (r.key === key ? { ...r, data: applyField(r.data, f, raw), dirty: true } : r))
     );
     setSavedAt(null);
-  }
-
-  function gridValue(data: any, f: FieldSpec): string | number {
-    let v = data?.[f.key];
-    if (f.key === "foods") return Array.isArray(v) ? v.join(", ") : "";
-    if (f.kind === "number" && typeof v === "number" && "scale" in f && f.scale) v = v / f.scale;
-    return v ?? "";
   }
 
   function addRow() {
@@ -317,7 +266,7 @@ export default function EventsGrid({
                           {f.label && <span className="text-xs text-gray-400">{f.label}</span>}
                           {f.kind === "select" ? (
                             <select
-                              value={String(gridValue(r.data, f))}
+                              value={String(fieldDisplayValue(r.data, f))}
                               onChange={(e) => setDetail(r.key, f, e.target.value)}
                               className="rounded border border-gray-200 bg-white px-1.5 py-1"
                             >
@@ -331,7 +280,7 @@ export default function EventsGrid({
                           ) : (
                             <input
                               type={f.kind === "number" ? "number" : "text"}
-                              value={String(gridValue(r.data, f))}
+                              value={String(fieldDisplayValue(r.data, f))}
                               onChange={(e) => setDetail(r.key, f, e.target.value)}
                               className={`rounded border border-gray-200 px-1.5 py-1 ${f.kind === "number" ? "w-16" : "w-28"}`}
                             />

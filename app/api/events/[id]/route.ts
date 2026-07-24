@@ -58,13 +58,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return json({ event: rows[0] });
 }
 
-// DELETE /api/events/:id
+// DELETE /api/events/:id — soft delete (mark deleted_at, keep the row for tracking)
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const ev = await loadOwned(user.id, params.id);
   if (!ev) return error("Not found", 404);
-  await query("delete from events where id = $1", [params.id]);
+  await query("update events set deleted_at = now(), updated_by = $2 where id = $1", [params.id, user.id]);
   broadcast(ev.child_id, { kind: "event.deleted", id: params.id });
   return json({ ok: true });
 }

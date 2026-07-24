@@ -87,8 +87,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     let deleted: string[] = [];
     if (deletes.length) {
       const { rows } = await client.query(
-        `delete from events where child_id = $1 and id = any($2::uuid[]) returning id`,
-        [params.id, deletes]
+        `update events set deleted_at = now(), updated_by = $3
+          where child_id = $1 and id = any($2::uuid[]) and deleted_at is null
+          returning id`,
+        [params.id, deletes, user.id]
       );
       deleted = rows.map((r) => r.id);
     }

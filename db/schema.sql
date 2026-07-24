@@ -53,7 +53,13 @@ create table if not exists events (
   updated_at timestamptz not null default now()
 );
 
+-- Soft delete: deleting an event sets deleted_at instead of removing the row,
+-- so history is retained for tracking. All list queries filter deleted_at is null.
+alter table events add column if not exists deleted_at timestamptz;
+
 create index if not exists events_child_start_idx on events (child_id, start_time desc);
--- fast lookup of "what's in progress right now" for a child
-create index if not exists events_in_progress_idx on events (child_id) where end_time is null;
+-- fast lookup of "what's in progress right now" for a child (only live rows)
+create index if not exists events_in_progress_idx on events (child_id) where end_time is null and deleted_at is null;
+-- timeline reads only non-deleted rows
+create index if not exists events_active_idx on events (child_id, start_time desc) where deleted_at is null;
 create index if not exists caregivers_user_idx on caregivers (user_id);

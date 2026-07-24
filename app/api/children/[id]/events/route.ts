@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     `select e.id, e.type, e.start_time, e.end_time, e.data, e.note,
             e.created_by, u.name as created_by_name
        from events e join users u on u.id = e.created_by
-      where e.child_id = $1
+      where e.child_id = $1 and e.deleted_at is null
       order by e.start_time desc
       limit $2`,
     [params.id, limit]

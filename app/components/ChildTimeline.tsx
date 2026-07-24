@@ -7,6 +7,7 @@ import { clockTime, dayLabel, humanDuration, stopwatch, timeAgo } from "@/lib/fo
 import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
 import LogSheet from "./LogSheet";
+import EditEventSheet from "./EditEventSheet";
 
 type EventRow = {
   id: string;
@@ -19,7 +20,7 @@ type EventRow = {
   created_by_name?: string;
 };
 
-type Sheet = { kind: "nursing" } | { kind: "log"; type: EventType } | null;
+type Sheet = { kind: "nursing" } | { kind: "log"; type: EventType } | { kind: "edit"; event: EventRow } | null;
 
 export default function ChildTimeline({
   child,
@@ -192,7 +193,12 @@ export default function ChildTimeline({
             <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">{day}</h3>
             <div className="space-y-2">
               {items.map((e) => (
-                <TimelineItem key={e.id} e={e} onDelete={() => deleteEvent(e.id, setEvents)} />
+                <TimelineItem
+                  key={e.id}
+                  e={e}
+                  onEdit={() => setSheet({ kind: "edit", event: e })}
+                  onDelete={() => deleteEvent(e.id, setEvents)}
+                />
               ))}
             </div>
           </div>
@@ -216,6 +222,16 @@ export default function ChildTimeline({
           onClose={() => setSheet(null)}
           onSave={async (payload) => {
             await logEvent(sheet.type, payload);
+            setSheet(null);
+          }}
+        />
+      )}
+      {sheet?.kind === "edit" && (
+        <EditEventSheet
+          event={sheet.event}
+          onClose={() => setSheet(null)}
+          onSaved={(updated) => {
+            upsert(updated);
             setSheet(null);
           }}
         />
@@ -262,31 +278,37 @@ function MoreTrackers({ onPick }: { onPick: (t: EventType) => void }) {
   );
 }
 
-function TimelineItem({ e, onDelete }: { e: EventRow; onDelete: () => void }) {
+function TimelineItem({ e, onEdit, onDelete }: { e: EventRow; onEdit: () => void; onDelete: () => void }) {
   const def = EVENT_DEFS[e.type];
+  const isDuration = def.kind === "duration";
   const duration =
-    def.kind === "duration" && e.end_time
-      ? humanDuration((+new Date(e.end_time) - +new Date(e.start_time)) / 1000)
-      : null;
+    isDuration && e.end_time ? humanDuration((+new Date(e.end_time) - +new Date(e.start_time)) / 1000) : null;
+  // start–end range for durations; single time for point events
+  const timeText = isDuration
+    ? `${clockTime(e.start_time)} – ${e.end_time ? clockTime(e.end_time) : "now"}`
+    : clockTime(e.start_time);
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3">
-      <span className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${def.color} text-white`}>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${def.color} text-white`}>
         {def.emoji}
       </span>
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">
           {def.label}
           {duration && <span className="ml-2 text-xs text-gray-400">{duration}</span>}
         </p>
-        <p className="text-xs text-gray-500">
-          {summarizeEvent(e.type, e.data, e.start_time, e.end_time)}
+        <p className="truncate text-xs text-gray-500">
+          {summarizeEvent(e.type, e.data)}
           {e.note ? ` · ${e.note}` : ""}
         </p>
+        <p className="mt-0.5 text-xs text-gray-400">{timeText}</p>
       </div>
-      <div className="text-right">
-        <p className="text-xs text-gray-400">{clockTime(e.start_time)}</p>
-        <button onClick={onDelete} className="tap text-xs text-gray-300 active:text-red-500">
-          delete
+      <div className="flex shrink-0 items-center gap-1">
+        <button onClick={onEdit} className="tap p-1.5 text-base text-gray-400 active:text-indigo-600" title="Edit" aria-label="Edit">
+          ✏️
+        </button>
+        <button onClick={onDelete} className="tap p-1.5 text-base text-gray-400 active:text-red-600" title="Delete" aria-label="Delete">
+          🗑️
         </button>
       </div>
     </div>
