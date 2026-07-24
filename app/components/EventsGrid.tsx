@@ -5,6 +5,7 @@ import { api } from "@/lib/client";
 import { ALL_EVENT_TYPES, EVENT_DEFS, EventType } from "@/lib/events";
 import { toLocalInput, fromLocalInput } from "@/lib/format";
 import { FieldSpec, DETAIL_FIELDS, fieldDisplayValue, applyField } from "@/lib/detailFields";
+import { Button } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -178,24 +179,20 @@ export default function EventsGrid({
             {dirtyCount > 0 ? `${dirtyCount} unsaved change${dirtyCount > 1 ? "s" : ""}` : savedAt ? `saved ${savedAt}` : `${rows.length} entries`}
           </span>
         </div>
-        <button
-          onClick={save}
-          disabled={saving || dirtyCount === 0}
-          className="tap rounded-lg bg-indigo-600 px-4 py-1.5 font-semibold text-white active:bg-indigo-700 disabled:opacity-40"
-        >
-          {saving ? "…" : "Save"}
-        </button>
+        <Button size="sm" onClick={save} loading={saving} disabled={dirtyCount === 0}>
+          Save
+        </Button>
       </header>
 
       {/* toolbar */}
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
-        <button onClick={addRow} className="tap rounded-lg border border-indigo-300 px-3 py-1.5 font-medium text-indigo-700 active:bg-indigo-50">
+        <button onClick={addRow} className="tap rounded-lg border border-brand-300 px-3 py-1.5 font-medium text-brand-700 active:bg-brand-50">
           + Add row
         </button>
         {selected.size > 0 && (
-          <button onClick={deleteSelected} className="tap rounded-lg border border-red-300 px-3 py-1.5 font-medium text-red-600 active:bg-red-50">
+          <Button variant="danger" size="sm" onClick={deleteSelected}>
             Delete {selected.size}
-          </button>
+          </Button>
         )}
         {err && <span className="ml-auto text-xs text-red-600">{err}</span>}
       </div>

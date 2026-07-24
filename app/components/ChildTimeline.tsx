@@ -8,6 +8,7 @@ import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
 import LogSheet from "./LogSheet";
 import EditEventSheet from "./EditEventSheet";
+import { IconButton } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -131,7 +132,7 @@ export default function ChildTimeline({
           {inProgress.map((e) => (
             <div
               key={e.id}
-              className="flex items-center justify-between rounded-2xl bg-indigo-600 px-4 py-3 text-white"
+              className="flex items-center justify-between rounded-2xl bg-brand-600 px-4 py-3 text-white"
             >
               <div>
                 <p className="text-sm font-medium">
@@ -148,7 +149,7 @@ export default function ChildTimeline({
                 </span>
                 <button
                   onClick={() => stopTimer(e.id)}
-                  className="tap rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-indigo-700"
+                  className="tap rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand-700"
                 >
                   Stop
                 </button>
@@ -253,7 +254,7 @@ function MoreTrackers({ onPick }: { onPick: (t: EventType) => void }) {
     <div className="px-5">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="tap w-full text-left text-sm font-medium text-indigo-600"
+        className="tap w-full text-left text-sm font-medium text-brand-600"
       >
         {open ? "− Fewer" : "+ More trackers"}
       </button>
@@ -307,12 +308,12 @@ function TimelineItem({ e, onEdit, onDelete }: { e: EventRow; onEdit: () => void
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <button onClick={onEdit} className="tap p-1.5 text-base text-gray-400 active:text-indigo-600" title="Edit" aria-label="Edit">
+        <IconButton label="Edit" tone="brand" onClick={onEdit}>
           ✏️
-        </button>
-        <button onClick={onDelete} className="tap p-1.5 text-base text-gray-400 active:text-red-600" title="Delete" aria-label="Delete">
+        </IconButton>
+        <IconButton label="Delete" tone="danger" onClick={onDelete}>
           🗑️
-        </button>
+        </IconButton>
       </div>
     </div>
   );

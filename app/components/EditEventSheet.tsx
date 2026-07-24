@@ -4,6 +4,7 @@ import { api } from "@/lib/client";
 import { EVENT_DEFS, EventType } from "@/lib/events";
 import { toLocalInput, fromLocalInput } from "@/lib/format";
 import { detailFieldsFor, fieldDisplayValue, applyField } from "@/lib/detailFields";
+import { Button, ChoiceChips, Field, Sheet, TextInput } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -57,87 +58,44 @@ export default function EditEventSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 mx-auto flex max-w-md items-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-full rounded-t-3xl bg-white px-5 pb-8 pt-4" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-gray-300" />
-        <h2 className="mb-4 text-center text-lg font-semibold">
-          Edit {def.emoji} {def.label}
-        </h2>
-
-        <label className="mb-3 block text-sm">
-          <span className="mb-1 block text-gray-600">Start</span>
-          <input
-            type="datetime-local"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
-          />
-        </label>
+    <Sheet onClose={onClose} title={`Edit ${def.emoji} ${def.label}`}>
+      <div className="space-y-3">
+        <Field label="Start">
+          <TextInput type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
+        </Field>
 
         {def.kind === "duration" && (
-          <label className="mb-3 block text-sm">
-            <span className="mb-1 block text-gray-600">End {end ? "" : "(in progress)"}</span>
-            <input
-              type="datetime-local"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
-            />
-          </label>
+          <Field label={`End${end ? "" : " (in progress)"}`}>
+            <TextInput type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />
+          </Field>
         )}
 
-        {fields.length > 0 && (
-          <div className="mb-3 flex flex-wrap items-end gap-3">
-            {fields.map((f) => (
-              <label key={f.key} className="text-sm">
-                <span className="mb-1 block capitalize text-gray-600">{f.label || f.key.replace(/_/g, " ")}</span>
-                {f.kind === "select" ? (
-                  <select
-                    value={String(fieldDisplayValue(data, f))}
-                    onChange={(e) => setData(applyField(data, f, e.target.value))}
-                    className="rounded-xl border border-gray-300 px-3 py-2.5"
-                  >
-                    <option value=""></option>
-                    {f.options.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="inline-flex items-center gap-1">
-                    <input
-                      type={f.kind === "number" ? "number" : "text"}
-                      value={String(fieldDisplayValue(data, f))}
-                      onChange={(e) => setData(applyField(data, f, e.target.value))}
-                      className={`rounded-xl border border-gray-300 px-3 py-2.5 ${f.kind === "number" ? "w-24" : "w-40"}`}
-                    />
-                    {f.kind === "number" && "unit" in f && f.unit && <span className="text-xs text-gray-400">{f.unit}</span>}
-                  </span>
-                )}
-              </label>
-            ))}
-          </div>
-        )}
+        {fields.map((f) => {
+          const label = f.label || f.key.replace(/_/g, " ");
+          if (f.kind === "select") {
+            return (
+              <Field key={f.key} label={label}>
+                <ChoiceChips options={f.options} value={String(fieldDisplayValue(data, f))} onChange={(v) => setData(applyField(data, f, v))} />
+              </Field>
+            );
+          }
+          return (
+            <Field key={f.key} label={f.kind === "number" && "unit" in f && f.unit ? `${label} (${f.unit})` : label}>
+              <TextInput
+                type={f.kind === "number" ? "number" : "text"}
+                value={String(fieldDisplayValue(data, f))}
+                onChange={(e) => setData(applyField(data, f, e.target.value))}
+              />
+            </Field>
+          );
+        })}
 
-        <input
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-
-        {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
-
-        <button
-          onClick={save}
-          disabled={saving}
-          className="tap mt-4 w-full rounded-xl bg-indigo-600 py-3.5 font-semibold text-white active:bg-indigo-700 disabled:opacity-50"
-        >
-          {saving ? "…" : "Save changes"}
-        </button>
+        <TextInput placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+        {err && <p className="text-sm text-red-600">{err}</p>}
+        <Button fullWidth loading={saving} onClick={save}>
+          Save changes
+        </Button>
       </div>
-    </div>
+    </Sheet>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
+import { Button } from "@/app/components/ui";
 
 export default function InviteAccept({
   token,
@@ -23,7 +24,7 @@ export default function InviteAccept({
         <p className="text-4xl">🙈</p>
         <h1 className="mt-4 text-xl font-bold">Invite not available</h1>
         <p className="mt-2 text-sm text-gray-500">This link is invalid, already used, or expired.</p>
-        <Link href="/" className="mt-6 inline-block font-semibold text-indigo-600">
+        <Link href="/" className="mt-6 inline-block font-semibold text-brand-600">
           Go home
         </Link>
       </div>
@@ -55,20 +56,16 @@ export default function InviteAccept({
 
       {loggedIn ? (
         <>
-          <button
-            onClick={accept}
-            disabled={busy}
-            className="tap mt-8 w-full rounded-xl bg-indigo-600 py-3.5 font-semibold text-white active:bg-indigo-700 disabled:opacity-50"
-          >
-            {busy ? "…" : "Accept invite"}
-          </button>
+          <Button onClick={accept} loading={busy} fullWidth className="mt-8">
+            Accept invite
+          </Button>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         </>
       ) : (
         <div className="mt-8 space-y-3">
           <Link
             href={`/signup?next=/invite/${token}`}
-            className="tap block w-full rounded-xl bg-indigo-600 py-3.5 font-semibold text-white active:bg-indigo-700"
+            className="tap block w-full rounded-xl bg-brand-600 py-3.5 font-semibold text-white active:bg-brand-700"
           >
             Sign up to accept
           </Link>

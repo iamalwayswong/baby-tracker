@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { EVENT_DEFS, EventType } from "@/lib/events";
+import { Button, ChoiceChips, Sheet, Stepper, TextInput } from "@/app/components/ui";
 
 // Bottom sheet for point-in-time events. Each type renders quick presets so
 // logging is a couple of taps, with sensible defaults pre-selected.
@@ -28,87 +29,18 @@ export default function LogSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 mx-auto flex max-w-md items-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30" />
-      <div
-        className="relative w-full rounded-t-3xl bg-white px-5 pb-8 pt-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-gray-300" />
-        <h2 className="mb-4 text-center text-lg font-semibold">
-          {def.emoji} {def.label}
-        </h2>
-
-        <Body type={type} data={data} setData={setData} />
-
-        <input
-          className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-
-        <button
-          onClick={save}
-          disabled={saving}
-          className="tap mt-4 w-full rounded-xl bg-indigo-600 py-3.5 font-semibold text-white active:bg-indigo-700 disabled:opacity-50"
-        >
-          {saving ? "…" : "Log it"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`tap flex-1 rounded-xl border py-3 text-sm font-medium capitalize ${
-        active ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-300"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Stepper({
-  label,
-  value,
-  step,
-  unit,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  step: number;
-  unit: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-gray-300 px-4 py-3">
-      <span className="text-sm text-gray-600">{label}</span>
-      <div className="flex items-center gap-3">
-        <button className="tap h-8 w-8 rounded-full bg-gray-100 text-lg" onClick={() => onChange(Math.max(0, value - step))}>
-          −
-        </button>
-        <span className="w-20 text-center font-semibold tabular-nums">
-          {value} {unit}
-        </span>
-        <button className="tap h-8 w-8 rounded-full bg-gray-100 text-lg" onClick={() => onChange(value + step)}>
-          +
-        </button>
-      </div>
-    </div>
+    <Sheet onClose={onClose} title={`${def.emoji} ${def.label}`}>
+      <Body type={type} data={data} setData={setData} />
+      <TextInput
+        className="mt-4 text-sm"
+        placeholder="Note (optional)"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <Button fullWidth loading={saving} onClick={save} className="mt-4">
+        Log it
+      </Button>
+    </Sheet>
   );
 }
 
@@ -117,26 +49,12 @@ function Body({ type, data, setData }: { type: EventType; data: any; setData: (d
 
   switch (type) {
     case "diaper":
-      return (
-        <div className="flex gap-2">
-          {["wet", "dirty", "mixed"].map((k) => (
-            <Chip key={k} active={data.kind === k} onClick={() => set({ kind: k })}>
-              {k}
-            </Chip>
-          ))}
-        </div>
-      );
+      return <ChoiceChips options={["wet", "dirty", "mixed"]} value={data.kind} onChange={(v) => set({ kind: v })} />;
     case "feed_bottle":
       return (
         <div className="space-y-3">
           <Stepper label="Amount" value={data.volume_ml ?? 60} step={10} unit="ml" onChange={(v) => set({ volume_ml: v })} />
-          <div className="flex gap-2">
-            {["breastmilk", "formula", "mixed"].map((c) => (
-              <Chip key={c} active={data.contents === c} onClick={() => set({ contents: c })}>
-                {c}
-              </Chip>
-            ))}
-          </div>
+          <ChoiceChips options={["breastmilk", "formula", "mixed"]} value={data.contents} onChange={(v) => set({ contents: v })} />
         </div>
       );
     case "pump":
@@ -149,18 +67,11 @@ function Body({ type, data, setData }: { type: EventType; data: any; setData: (d
     case "feed_solid":
       return (
         <div className="space-y-3">
-          <input
-            className="w-full rounded-xl border border-gray-300 px-4 py-3"
+          <TextInput
             placeholder="Foods (e.g. banana, oatmeal)"
             onChange={(e) => set({ foods: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
           />
-          <div className="flex gap-2">
-            {["taste", "some", "lots"].map((a) => (
-              <Chip key={a} active={data.amount === a} onClick={() => set({ amount: a })}>
-                {a}
-              </Chip>
-            ))}
-          </div>
+          <ChoiceChips options={["taste", "some", "lots"]} value={data.amount} onChange={(v) => set({ amount: v })} />
         </div>
       );
     case "growth":
@@ -174,22 +85,12 @@ function Body({ type, data, setData }: { type: EventType; data: any; setData: (d
     case "medicine":
       return (
         <div className="space-y-3">
-          <input
-            className="w-full rounded-xl border border-gray-300 px-4 py-3"
-            placeholder="Medicine name"
-            onChange={(e) => set({ name: e.target.value })}
-          />
-          <input
-            className="w-full rounded-xl border border-gray-300 px-4 py-3"
-            placeholder="Dose (e.g. 2.5 ml)"
-            onChange={(e) => set({ dose: e.target.value })}
-          />
+          <TextInput placeholder="Medicine name" onChange={(e) => set({ name: e.target.value })} />
+          <TextInput placeholder="Dose (e.g. 2.5 ml)" onChange={(e) => set({ dose: e.target.value })} />
         </div>
       );
     case "temperature":
-      return (
-        <Stepper label="Temp" value={data.celsius ?? 37} step={1} unit="°C" onChange={(v) => set({ celsius: v })} />
-      );
+      return <Stepper label="Temp" value={data.celsius ?? 37} step={1} unit="°C" onChange={(v) => set({ celsius: v })} />;
     default:
       return <p className="text-center text-sm text-gray-500">Tap “Log it” to record.</p>;
   }
