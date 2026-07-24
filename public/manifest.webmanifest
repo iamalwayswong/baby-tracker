@@ -1,0 +1,17 @@
+{
+  "name": "Nestling — Baby Tracker",
+  "short_name": "Nestling",
+  "description": "Track sleep, feeding, diapers and growth — together.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f3ff",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

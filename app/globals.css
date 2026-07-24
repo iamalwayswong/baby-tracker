@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f5f3ff;
+  --foreground: #1e1b2e;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  /* respect iOS safe areas for the PWA */
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+
+@layer utilities {
+  .tap {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
