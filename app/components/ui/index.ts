@@ -7,3 +7,4 @@ export { default as ChoiceChips } from "./ChoiceChips";
 export { default as Stepper } from "./Stepper";
 export { default as Sheet } from "./Sheet";
 export { default as Card } from "./Card";
+export { default as ConfirmModal } from "./ConfirmModal";

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Button, IconButton, TextInput, Field, ChoiceChips, Stepper, Sheet, Card } from "@/app/components/ui";
+import { Button, IconButton, TextInput, Field, ChoiceChips, Stepper, Sheet, Card, ConfirmModal } from "@/app/components/ui";
 
 // Living style guide — a gallery of the UI kit. Visit /style-guide.
 // Use this to eyeball design changes: tweak a component in app/components/ui
@@ -10,6 +10,7 @@ export default function StyleGuidePage() {
   const [ml, setMl] = useState(60);
   const [text, setText] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
     <div className="space-y-8 px-5 py-8">
@@ -98,6 +99,20 @@ export default function StyleGuidePage() {
             <p className="text-sm text-gray-500">Any content goes here.</p>
             <Button fullWidth className="mt-4" onClick={() => setSheetOpen(false)}>Done</Button>
           </Sheet>
+        )}
+      </Section>
+
+      <Section title="Confirm modal">
+        <Button variant="destructive" onClick={() => setConfirmOpen(true)}>Delete something…</Button>
+        {confirmOpen && (
+          <ConfirmModal
+            title="Delete this entry?"
+            message="It will be removed from the timeline."
+            confirmLabel="Delete"
+            tone="danger"
+            onConfirm={() => setConfirmOpen(false)}
+            onCancel={() => setConfirmOpen(false)}
+          />
         )}
       </Section>
 

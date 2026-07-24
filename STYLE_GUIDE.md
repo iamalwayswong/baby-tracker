@@ -8,6 +8,7 @@ happens in **one place**. Live gallery: run the app and visit **`/style-guide`**
 - **Mobile-first, one-handed.** Big tap targets; the `tap` utility (in `globals.css`) removes the tap highlight and sets `touch-action: manipulation`.
 - **One source of truth per pattern.** Don't hand-roll a button/input/sheet — use the kit. If the kit can't do it, extend the kit, don't fork it.
 - **Semantic color, not raw palette.** Use `brand-*` for the accent, never `indigo-*` directly. Per-tracker colors live in `lib/events.ts` (`EVENT_DEFS[type].color`).
+- **No native dialogs.** Never use `window.confirm`/`alert`. Use `ConfirmModal` for confirmations (destructive actions, discarding unsaved changes).
 
 ## Design tokens
 
@@ -24,14 +25,15 @@ Import from the barrel: `import { Button, TextInput, ... } from "@/app/component
 
 | Component | Purpose | Key props |
 |---|---|---|
-| `Button` | The only button | `variant` (`primary`\|`secondary`\|`ghost`\|`danger`), `size` (`sm`\|`md`), `fullWidth`, `loading` |
+| `Button` | The only button | `variant` (`primary`\|`secondary`\|`ghost`\|`danger`\|`destructive`), `size` (`sm`\|`md`), `fullWidth`, `loading` |
 | `IconButton` | Icon/emoji tap target (edit, delete, close) | `label` (required, a11y), `tone` (`default`\|`brand`\|`danger`) |
 | `TextInput` | Text/date/number input | native input props; forwards `ref` |
 | `Field` | Label above a control | `label` |
 | `ChoiceChips` | Single-select toggle chips | `options` (`string[]` or `{value,label}[]`), `value`, `onChange` |
 | `Stepper` | +/- number entry | `label`, `value`, `step`, `unit`, `onChange` |
-| `Sheet` | Bottom-sheet scaffold (backdrop, panel, handle, title) | `onClose`, `title` |
+| `Sheet` | Bottom-sheet scaffold (backdrop, drag-to-dismiss handle, ✕ close, title) | `onClose`, `title`, `showClose`. Backdrop tap / ✕ / drag-down all call `onClose` — the parent decides (e.g. confirm unsaved changes). |
 | `Card` | Bordered white container | `subtle` (softer border for list rows) |
+| `ConfirmModal` | Custom in-app confirm dialog (never `window.confirm`) | `title`, `message`, `confirmLabel`, `tone` (`primary`\|`danger`), `loading`, `onConfirm`, `onCancel` |
 
 `cn(...)` in `lib/cn.ts` joins class names (drops falsy). Every kit component takes a
 `className` that merges last, so callers can tweak spacing without forking.

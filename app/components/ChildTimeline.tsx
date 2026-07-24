@@ -8,7 +8,6 @@ import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
 import LogSheet from "./LogSheet";
 import EditEventSheet from "./EditEventSheet";
-import { IconButton } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -194,12 +193,7 @@ export default function ChildTimeline({
             <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">{day}</h3>
             <div className="space-y-2">
               {items.map((e) => (
-                <TimelineItem
-                  key={e.id}
-                  e={e}
-                  onEdit={() => setSheet({ kind: "edit", event: e })}
-                  onDelete={() => deleteEvent(e.id, setEvents)}
-                />
+                <TimelineItem key={e.id} e={e} onClick={() => setSheet({ kind: "edit", event: e })} />
               ))}
             </div>
           </div>
@@ -235,16 +229,14 @@ export default function ChildTimeline({
             upsert(updated);
             setSheet(null);
           }}
+          onDeleted={(id) => {
+            setEvents((l) => l.filter((x) => x.id !== id));
+            setSheet(null);
+          }}
         />
       )}
     </div>
   );
-}
-
-async function deleteEvent(id: string, setEvents: React.Dispatch<React.SetStateAction<EventRow[]>>) {
-  if (!confirm("Delete this entry?")) return;
-  await api(`/api/events/${id}`, { method: "DELETE" });
-  setEvents((l) => l.filter((x) => x.id !== id));
 }
 
 function MoreTrackers({ onPick }: { onPick: (t: EventType) => void }) {
@@ -279,7 +271,7 @@ function MoreTrackers({ onPick }: { onPick: (t: EventType) => void }) {
   );
 }
 
-function TimelineItem({ e, onEdit, onDelete }: { e: EventRow; onEdit: () => void; onDelete: () => void }) {
+function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
   const def = EVENT_DEFS[e.type];
   const isDuration = def.kind === "duration";
   const duration =
@@ -288,34 +280,26 @@ function TimelineItem({ e, onEdit, onDelete }: { e: EventRow; onEdit: () => void
   const timeText = isDuration
     ? `${clockTime(e.start_time)} – ${e.end_time ? clockTime(e.end_time) : "now"}`
     : clockTime(e.start_time);
+  const comment = [summarizeEvent(e.type, e.data), e.note].filter(Boolean).join(" · ");
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3">
+    <button
+      onClick={onClick}
+      className="tap flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 text-left active:bg-gray-50"
+    >
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${def.color} text-white`}>
         {def.emoji}
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{def.label}</p>
-        {/* time: the bold, defined anchor */}
-        <p className="text-base font-bold leading-tight text-gray-900">{timeText}</p>
-        {/* duration sits directly under the time */}
-        {duration && <p className="text-sm font-semibold text-gray-500">{duration}</p>}
+        {/* time (left) and duration (right) — same size & weight, space-between */}
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-lg font-bold leading-tight text-gray-900">{timeText}</span>
+          {duration && <span className="shrink-0 text-lg font-bold leading-tight text-gray-500">{duration}</span>}
+        </div>
         {/* comment stays muted, underneath */}
-        {(summarizeEvent(e.type, e.data) || e.note) && (
-          <p className="mt-0.5 truncate text-xs text-gray-400">
-            {summarizeEvent(e.type, e.data)}
-            {e.note ? ` · ${e.note}` : ""}
-          </p>
-        )}
+        {comment && <p className="mt-0.5 truncate text-xs text-gray-400">{comment}</p>}
       </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <IconButton label="Edit" tone="brand" onClick={onEdit}>
-          ✏️
-        </IconButton>
-        <IconButton label="Delete" tone="danger" onClick={onDelete}>
-          🗑️
-        </IconButton>
-      </div>
-    </div>
+    </button>
   );
 }
 

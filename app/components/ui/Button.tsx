@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "destructive";
 type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
@@ -8,6 +8,7 @@ const VARIANTS: Record<Variant, string> = {
   secondary: "border border-gray-300 text-gray-700 active:bg-gray-50",
   ghost: "text-brand-600 active:text-brand-700",
   danger: "border border-red-300 text-red-600 active:bg-red-50",
+  destructive: "bg-red-600 text-white active:bg-red-700",
 };
 
 const SIZES: Record<Size, string> = {
