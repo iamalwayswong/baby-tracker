@@ -7,6 +7,32 @@ import { caregiverRole } from "@/lib/auth";
 
 const Body = z.object({ email: z.string().email() });
 
+// Base URL from the request host, so links match the deployed domain.
+function baseUrl(req: Request): string {
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  return host ? `${proto}://${host}` : process.env.APP_URL || "http://localhost:3000";
+}
+
+// GET /api/children/:id/invite — list active (pending, unexpired) invites
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const user = await requireUser();
+  if (user instanceof NextResponse) return user;
+  if ((await caregiverRole(user.id, params.id)) !== "owner") return error("Only the owner can view invites", 403);
+
+  const rows = await query<{ id: string; email: string; token: string; expires_at: string; created_at: string }>(
+    `select id, email, token, expires_at, created_at
+       from invites
+      where child_id = $1 and status = 'pending' and expires_at > now()
+      order by created_at desc`,
+    [params.id]
+  );
+  const base = baseUrl(req);
+  return json({
+    invites: rows.map((r) => ({ id: r.id, email: r.email, expiresAt: r.expires_at, url: `${base}/invite/${r.token}` })),
+  });
+}
+
 // POST /api/children/:id/invite — owner invites another caregiver by email
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const user = await requireUser();
@@ -20,15 +46,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const token = randomBytes(24).toString("hex");
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  await query(
+  const rows = await query<{ id: string; expires_at: string }>(
     `insert into invites (child_id, invited_by, email, token, expires_at)
-     values ($1, $2, $3, $4, $5)`,
+     values ($1, $2, $3, $4, $5)
+     returning id, expires_at`,
     [params.id, user.id, email, token, expires]
   );
-  // Build the link from the host the request actually came in on, so it always
-  // matches the deployed domain (falls back to APP_URL, then localhost).
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  const base = host ? `${proto}://${host}` : process.env.APP_URL || "http://localhost:3000";
-  return json({ token, url: `${base}/invite/${token}`, email });
+  const base = baseUrl(req);
+  return json({ id: rows[0].id, token, url: `${base}/invite/${token}`, email, expiresAt: rows[0].expires_at });
 }

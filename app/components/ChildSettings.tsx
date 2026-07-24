@@ -3,33 +3,44 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
-import { Button, Card, TextInput } from "@/app/components/ui";
+import { Button, Card, ConfirmModal, TextInput } from "@/app/components/ui";
 
 type Caregiver = { id: string; name: string; email: string; role: string };
+type Invite = { id: string; email: string; expiresAt: string; url: string };
+
+function daysLeft(iso: string): string {
+  const ms = new Date(iso).getTime() - Date.now();
+  const d = Math.ceil(ms / (24 * 60 * 60 * 1000));
+  return d <= 1 ? "expires soon" : `expires in ${d}d`;
+}
 
 export default function ChildSettings({
   child,
   role,
   caregivers,
+  initialInvites,
 }: {
   child: { id: string; name: string };
   role: string;
   caregivers: Caregiver[];
+  initialInvites: Invite[];
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [invites, setInvites] = useState<Invite[]>(initialInvites);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<Invite | null>(null);
+  const [revBusy, setRevBusy] = useState(false);
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      const { url } = await api<{ url: string }>(`/api/children/${child.id}/invite`, { json: { email } });
-      setInviteUrl(url);
+      const created = await api<Invite>(`/api/children/${child.id}/invite`, { json: { email } });
+      setInvites((list) => [created, ...list]);
       setEmail("");
     } catch (err: any) {
       setError(err.message);
@@ -38,11 +49,30 @@ export default function ChildSettings({
     }
   }
 
-  async function copy() {
-    if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  async function copy(inv: Invite) {
+    await navigator.clipboard.writeText(inv.url);
+    setCopiedId(inv.id);
+    setTimeout(() => setCopiedId((c) => (c === inv.id ? null : c)), 1500);
+  }
+
+  async function doRevoke() {
+    if (!revoking) return;
+    setRevBusy(true);
+    try {
+      await api(`/api/children/${child.id}/invite/${revoking.id}`, { method: "DELETE" });
+      setInvites((list) => list.filter((i) => i.id !== revoking.id));
+      setRevoking(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRevBusy(false);
+    }
+  }
+
+  async function logout() {
+    await api("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
   }
 
   return (
@@ -81,16 +111,29 @@ export default function ChildSettings({
             </Button>
           </form>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          {inviteUrl && (
-            <div className="mt-4 rounded-2xl bg-brand-50 p-4">
-              <p className="text-sm text-gray-600">Share this link with them:</p>
-              <div className="mt-2 flex items-center gap-2">
-                <code className="flex-1 truncate rounded-lg bg-white px-3 py-2 text-xs">{inviteUrl}</code>
-                <Button size="sm" onClick={copy}>
-                  {copied ? "Copied!" : "Copy"}
-                </Button>
+          <p className="mt-2 text-xs text-gray-400">We don&apos;t email it — copy the link and send it to them.</p>
+
+          {invites.length > 0 && (
+            <div className="mt-5">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Active invite links ({invites.length})
+              </h3>
+              <div className="space-y-2">
+                {invites.map((inv) => (
+                  <Card key={inv.id} className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{inv.email}</p>
+                      <p className="text-xs text-gray-400">{daysLeft(inv.expiresAt)}</p>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={() => copy(inv)}>
+                      {copiedId === inv.id ? "Copied!" : "Copy link"}
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => setRevoking(inv)}>
+                      Revoke
+                    </Button>
+                  </Card>
+                ))}
               </div>
-              <p className="mt-2 text-xs text-gray-400">Link expires in 7 days.</p>
             </div>
           )}
         </div>
@@ -99,17 +142,22 @@ export default function ChildSettings({
       )}
 
       <div className="mt-10 border-t border-gray-100 pt-6">
-        <button
-          onClick={async () => {
-            await api("/api/auth/logout", { method: "POST" });
-            router.push("/login");
-            router.refresh();
-          }}
-          className="tap text-sm font-medium text-gray-400 active:text-gray-600"
-        >
+        <button onClick={logout} className="tap text-sm font-medium text-gray-400 active:text-gray-600">
           Log out
         </button>
       </div>
+
+      {revoking && (
+        <ConfirmModal
+          title="Revoke this invite?"
+          message={`The link sent to ${revoking.email} will stop working immediately.`}
+          confirmLabel="Revoke"
+          tone="danger"
+          loading={revBusy}
+          onConfirm={doRevoke}
+          onCancel={() => setRevoking(null)}
+        />
+      )}
     </div>
   );
 }

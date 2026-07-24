@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { getCurrentUser, caregiverRole } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import ChildSettings from "@/app/components/ChildSettings";
@@ -22,5 +23,21 @@ export default async function SettingsPage({ params }: { params: { id: string } 
     [params.id]
   );
 
-  return <ChildSettings child={child} role={role} caregivers={caregivers} />;
+  // active (pending, unexpired) invites, owner only — with links built from host
+  let pendingInvites: { id: string; email: string; expiresAt: string; url: string }[] = [];
+  if (role === "owner") {
+    const rows = await query<{ id: string; email: string; token: string; expires_at: string }>(
+      `select id, email, token, expires_at from invites
+        where child_id = $1 and status = 'pending' and expires_at > now()
+        order by created_at desc`,
+      [params.id]
+    );
+    const h = headers();
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const base = host ? `${proto}://${host}` : process.env.APP_URL || "";
+    pendingInvites = rows.map((r) => ({ id: r.id, email: r.email, expiresAt: r.expires_at, url: `${base}/invite/${r.token}` }));
+  }
+
+  return <ChildSettings child={child} role={role} caregivers={caregivers} initialInvites={pendingInvites} />;
 }
