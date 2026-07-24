@@ -25,6 +25,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
      values ($1, $2, $3, $4, $5)`,
     [params.id, user.id, email, token, expires]
   );
-  const base = process.env.APP_URL || "";
+  // Build the link from the host the request actually came in on, so it always
+  // matches the deployed domain (falls back to APP_URL, then localhost).
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const base = host ? `${proto}://${host}` : process.env.APP_URL || "http://localhost:3000";
   return json({ token, url: `${base}/invite/${token}`, email });
 }
