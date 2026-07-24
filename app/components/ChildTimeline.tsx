@@ -293,15 +293,18 @@ function TimelineItem({ e, onEdit, onDelete }: { e: EventRow; onEdit: () => void
         {def.emoji}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">
-          {def.label}
-          {duration && <span className="ml-2 text-xs text-gray-400">{duration}</span>}
-        </p>
-        <p className="truncate text-xs text-gray-500">
-          {summarizeEvent(e.type, e.data)}
-          {e.note ? ` · ${e.note}` : ""}
-        </p>
-        <p className="mt-0.5 text-xs text-gray-400">{timeText}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{def.label}</p>
+        {/* time: the bold, defined anchor */}
+        <p className="text-base font-bold leading-tight text-gray-900">{timeText}</p>
+        {/* duration sits directly under the time */}
+        {duration && <p className="text-sm font-semibold text-gray-500">{duration}</p>}
+        {/* comment stays muted, underneath */}
+        {(summarizeEvent(e.type, e.data) || e.note) && (
+          <p className="mt-0.5 truncate text-xs text-gray-400">
+            {summarizeEvent(e.type, e.data)}
+            {e.note ? ` · ${e.note}` : ""}
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <button onClick={onEdit} className="tap p-1.5 text-base text-gray-400 active:text-indigo-600" title="Edit" aria-label="Edit">
