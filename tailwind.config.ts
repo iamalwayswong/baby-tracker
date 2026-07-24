@@ -5,6 +5,8 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // tracker/side color classes live as string literals here (EVENT_DEFS, SIDE)
+    "./lib/**/*.{js,ts}",
   ],
   theme: {
     extend: {

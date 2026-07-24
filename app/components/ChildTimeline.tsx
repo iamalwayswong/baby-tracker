@@ -2,7 +2,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
-import { EVENT_DEFS, EventType, QUICK_EVENT_TYPES, ALL_EVENT_TYPES, summarizeEvent, Side } from "@/lib/events";
+import {
+  EVENT_DEFS,
+  EventType,
+  QUICK_EVENT_TYPES,
+  ALL_EVENT_TYPES,
+  summarizeEvent,
+  Side,
+  SIDE,
+  nursingSides,
+  sideDuration,
+} from "@/lib/events";
 import { clockTime, dayLabel, humanDuration, stopwatch, timeAgo } from "@/lib/format";
 import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
@@ -78,12 +88,12 @@ export default function ChildTimeline({
   // in-progress duration events (running timers, shared across parents)
   const inProgress = events.filter((e) => !e.end_time && EVENT_DEFS[e.type]?.kind === "duration");
 
-  // suggest the opposite of the last nursed side
-  const suggestedSide: Side = useMemo(() => {
-    const last = events.find((e) => e.type === "feed_breast");
-    const prev = last?.data?.last_side as Side | undefined;
-    return prev === "left" ? "right" : "left";
+  // the last side nursed (if any), and the suggested next side (the opposite)
+  const lastSide: Side | null = useMemo(() => {
+    const last = events.find((e) => e.type === "feed_breast" && e.data?.last_side);
+    return (last?.data?.last_side as Side) ?? null;
   }, [events]);
+  const suggestedSide: Side = lastSide === "left" ? "right" : "left";
 
   const sleepInProgress = inProgress.find((e) => e.type === "sleep");
 
@@ -163,14 +173,23 @@ export default function ChildTimeline({
         {QUICK_EVENT_TYPES.map((type) => {
           const def = EVENT_DEFS[type];
           const isActiveSleep = type === "sleep" && sleepInProgress;
+          const label =
+            isActiveSleep ? "Stop"
+            : type === "feed_breast" && lastSide ? `Nurse ${SIDE[suggestedSide].short}`
+            : def.label;
           return (
             <button
               key={type}
               onClick={() => quickTap(type)}
-              className={`tap flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl text-white active:scale-95 ${def.color}`}
+              className={`tap relative flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl text-white active:scale-95 ${def.color}`}
             >
               <span className="text-2xl">{def.emoji}</span>
-              <span className="text-xs font-medium">{isActiveSleep ? "Stop" : def.label}</span>
+              <span className="text-xs font-medium">{label}</span>
+              {type === "feed_breast" && lastSide && (
+                <span className="absolute right-1.5 top-1.5 rounded-full bg-white/90 px-1.5 text-[10px] font-bold text-gray-700">
+                  {SIDE[suggestedSide].short}
+                </span>
+              )}
             </button>
           );
         })}
@@ -204,6 +223,7 @@ export default function ChildTimeline({
       {sheet?.kind === "nursing" && (
         <NursingSheet
           suggestedSide={suggestedSide}
+          lastSide={lastSide}
           onClose={() => setSheet(null)}
           onSave={async (payload) => {
             await logEvent("feed_breast", payload);
@@ -280,6 +300,7 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
   const timeText = isDuration
     ? `${clockTime(e.start_time)} – ${e.end_time ? clockTime(e.end_time) : "now"}`
     : clockTime(e.start_time);
+  const isNursing = e.type === "feed_breast";
   const comment = [summarizeEvent(e.type, e.data), e.note].filter(Boolean).join(" · ");
   return (
     <button
@@ -296,8 +317,19 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
           <span className="text-lg font-bold leading-tight text-gray-900">{timeText}</span>
           {duration && <span className="shrink-0 text-lg font-bold leading-tight text-gray-500">{duration}</span>}
         </div>
-        {/* comment stays muted, underneath */}
-        {comment && <p className="mt-0.5 truncate text-xs text-gray-400">{comment}</p>}
+        {isNursing ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {nursingSides(e.data).map(({ side, seconds }) => (
+              <span key={side} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${SIDE[side].soft}`}>
+                {SIDE[side].label}
+                {seconds ? ` · ${sideDuration(seconds)}` : ""}
+              </span>
+            ))}
+            {e.note && <span className="truncate text-xs text-gray-400">{e.note}</span>}
+          </div>
+        ) : (
+          comment && <p className="mt-0.5 truncate text-xs text-gray-400">{comment}</p>
+        )}
       </div>
     </button>
   );

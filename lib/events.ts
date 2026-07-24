@@ -51,16 +51,35 @@ export function isEventType(x: string): x is EventType {
 
 export type Side = "left" | "right";
 
+// Per-side identity for nursing — Left = blue, Right = pink. Used for the
+// colored L/R badges on the timeline and the buttons in the nursing sheet.
+export const SIDE: Record<Side, { label: string; short: string; solid: string; soft: string }> = {
+  left: { label: "Left", short: "L", solid: "bg-sky-500", soft: "bg-sky-100 text-sky-700" },
+  right: { label: "Right", short: "R", solid: "bg-pink-500", soft: "bg-pink-100 text-pink-700" },
+};
+
+/** Short duration for a side: "5m" or "45s". */
+export function sideDuration(seconds: number): string {
+  return seconds >= 60 ? `${Math.round(seconds / 60)}m` : `${Math.round(seconds)}s`;
+}
+
+/** Which sides were nursed, in order, with their durations. */
+export function nursingSides(data: any): { side: Side; seconds: number }[] {
+  const out: { side: Side; seconds: number }[] = [];
+  if (data?.left_seconds) out.push({ side: "left", seconds: data.left_seconds });
+  if (data?.right_seconds) out.push({ side: "right", seconds: data.right_seconds });
+  // if nothing timed but a side is recorded, still show it
+  if (out.length === 0 && data?.last_side) out.push({ side: data.last_side, seconds: 0 });
+  return out;
+}
+
 /** Human summary of an event's data for the timeline. */
 export function summarizeEvent(type: EventType, data: any, _startTime?: string, _endTime?: string | null): string {
   switch (type) {
     case "feed_breast": {
-      const l = Math.round((data?.left_seconds ?? 0) / 60);
-      const r = Math.round((data?.right_seconds ?? 0) / 60);
-      const parts = [];
-      if (l) parts.push(`L ${l}m`);
-      if (r) parts.push(`R ${r}m`);
-      return parts.length ? parts.join(" · ") : "nursing";
+      const sides = nursingSides(data);
+      if (!sides.length) return "Nursing";
+      return sides.map((s) => `${SIDE[s.side].label}${s.seconds ? ` ${sideDuration(s.seconds)}` : ""}`).join(" · ");
     }
     case "feed_bottle":
       return data?.volume_ml ? `${data.volume_ml} ml ${data.contents ?? ""}`.trim() : "bottle";
