@@ -121,6 +121,9 @@ export default function ChildTimeline({
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <Link href={`/child/${child.id}/stats`} className="tap text-gray-400 active:text-gray-600" title="Stats">
+            📊
+          </Link>
           <Link href={`/child/${child.id}/manage`} className="tap text-gray-400 active:text-gray-600" title="All entries">
             ▦
           </Link>

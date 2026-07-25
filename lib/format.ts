@@ -46,6 +46,21 @@ export function fromLocalInput(val: string): string {
   return new Date(val).toISOString();
 }
 
+/** "6h 20m", "45m", "0m" — compact hours/minutes for stats. */
+export function hoursMinutes(seconds: number): string {
+  const total = Math.round(seconds / 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+/** Round seconds to whole minutes: "12 min". */
+export function minutesLabel(seconds: number): string {
+  return `${Math.round(seconds / 60)} min`;
+}
+
 /** "2h ago", "just now" */
 export function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
