@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { stopwatch, humanDuration } from "@/lib/format";
 import { Side, SIDE } from "@/lib/events";
+
+// Nursing is measured in minutes — seconds are noise (usually a mis-tap), so
+// the timer screen shows whole minutes.
+function mins(seconds: number): number {
+  return Math.round(seconds / 60);
+}
 
 // Full-screen nursing timer. Tap L or R to run that side; tapping the active
 // side pauses. Left = blue, Right = pink. On open it reminds you which side you
@@ -86,7 +91,10 @@ export default function NursingSheet({
       </div>
 
       <p className="mt-6 text-center text-sm text-gray-500">Total</p>
-      <p className="text-center text-5xl font-bold tabular-nums">{stopwatch(total)}</p>
+      <p className="text-center text-5xl font-bold tabular-nums">
+        {mins(total)}
+        <span className="text-2xl font-semibold text-gray-400"> min</span>
+      </p>
 
       <div className="mt-8 grid flex-1 grid-cols-2 gap-4">
         <SideButton side="left" seconds={left} active={active === "left"} suggested={suggestedSide === "left" && total === 0} onTap={() => tap("left")} />
@@ -127,8 +135,10 @@ function SideButton({
         </span>
       )}
       <span className="text-lg font-semibold">{s.label}</span>
-      <span className="mt-1 text-3xl font-bold tabular-nums">{stopwatch(seconds)}</span>
-      {seconds > 0 && <span className="mt-1 text-xs opacity-70">{humanDuration(seconds)}</span>}
+      <span className="mt-1 text-3xl font-bold tabular-nums">
+        {mins(seconds)}
+        <span className="text-lg font-semibold opacity-70"> min</span>
+      </span>
       {active && <span className="mt-2 text-xs">● running</span>}
     </button>
   );
