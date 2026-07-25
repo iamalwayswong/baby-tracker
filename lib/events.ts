@@ -58,9 +58,14 @@ export const SIDE: Record<Side, { label: string; short: string; solid: string; s
   right: { label: "Right", short: "R", solid: "bg-pink-500", soft: "bg-pink-100 text-pink-700" },
 };
 
-/** Short duration for a side: "5m" or "45s". */
+/**
+ * Nursing duration for display — always rounded to the nearest minute (exact
+ * seconds are still stored in the DB). Sub-30s rounds to "<1m" rather than
+ * "0m" so a very short session still reads sensibly.
+ */
 export function sideDuration(seconds: number): string {
-  return seconds >= 60 ? `${Math.round(seconds / 60)}m` : `${Math.round(seconds)}s`;
+  const m = Math.round(seconds / 60);
+  return m < 1 ? "<1m" : `${m}m`;
 }
 
 /** Which sides were nursed, in order, with their durations. */
