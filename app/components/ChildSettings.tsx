@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
-import { Button, Card, ConfirmModal, TextInput } from "@/app/components/ui";
+import { Button, Card, ChoiceChips, ConfirmModal, Field, TextInput } from "@/app/components/ui";
 
 type Caregiver = { id: string; name: string; email: string; role: string };
 type Invite = { id: string; email: string; expiresAt: string; url: string };
+type Child = { id: string; name: string; birth_date: string | null; sex: string };
 
 function daysLeft(iso: string): string {
   const ms = new Date(iso).getTime() - Date.now();
@@ -19,11 +21,26 @@ export default function ChildSettings({
   caregivers,
   initialInvites,
 }: {
-  child: { id: string; name: string };
+  child: Child;
   role: string;
   caregivers: Caregiver[];
   initialInvites: Invite[];
 }) {
+  const router = useRouter();
+  // edit-details form
+  const [name, setName] = useState(child.name);
+  const [birthDate, setBirthDate] = useState(child.birth_date ? child.birth_date.slice(0, 10) : "");
+  const [sex, setSex] = useState(child.sex);
+  const [savingChild, setSavingChild] = useState(false);
+  const [savedChild, setSavedChild] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const detailsDirty =
+    name !== child.name ||
+    birthDate !== (child.birth_date ? child.birth_date.slice(0, 10) : "") ||
+    sex !== child.sex;
+
   const [email, setEmail] = useState("");
   const [invites, setInvites] = useState<Invite[]>(initialInvites);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +84,63 @@ export default function ChildSettings({
     }
   }
 
+  async function saveDetails(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingChild(true);
+    setError(null);
+    try {
+      await api(`/api/children/${child.id}`, {
+        method: "PATCH",
+        json: { name, birth_date: birthDate || null, sex },
+      });
+      setSavedChild(true);
+      setTimeout(() => setSavedChild(false), 1500);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSavingChild(false);
+    }
+  }
+
+  async function doDelete() {
+    setDeleting(true);
+    try {
+      await api(`/api/children/${child.id}`, { method: "DELETE" });
+      router.push("/");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
+
   return (
     <div className="px-5 py-6">
       <Link href={`/child/${child.id}`} className="tap text-gray-400 active:text-gray-600">
         ‹ Back
       </Link>
-      <h1 className="mb-6 mt-3 text-2xl font-bold">{child.name} · Caregivers</h1>
+      <h1 className="mb-6 mt-3 text-2xl font-bold">{child.name} · Settings</h1>
+
+      {/* Edit details */}
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Details</h2>
+      <Card>
+        <form onSubmit={saveDetails} className="space-y-3">
+          <Field label="Name">
+            <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
+          </Field>
+          <Field label="Birthday">
+            <TextInput type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+          </Field>
+          <ChoiceChips options={["female", "male", "unspecified"]} value={sex} onChange={setSex} />
+          <Button type="submit" fullWidth loading={savingChild} disabled={!detailsDirty}>
+            {savedChild ? "Saved!" : "Save details"}
+          </Button>
+        </form>
+      </Card>
+
+      <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-gray-400">Caregivers</h2>
 
       <div className="space-y-2">
         {caregivers.map((c) => (
@@ -133,6 +201,18 @@ export default function ChildSettings({
         <p className="mt-8 text-sm text-gray-400">Only the owner can invite more caregivers.</p>
       )}
 
+      {role === "owner" && (
+        <div className="mt-10 border-t border-gray-100 pt-6">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-400">Danger zone</h2>
+          <Button variant="danger" fullWidth onClick={() => setConfirmDelete(true)}>
+            Delete {child.name}
+          </Button>
+          <p className="mt-2 text-xs text-gray-400">
+            Permanently removes {child.name} and all logged entries. This can&apos;t be undone.
+          </p>
+        </div>
+      )}
+
       {revoking && (
         <ConfirmModal
           title="Revoke this invite?"
@@ -142,6 +222,17 @@ export default function ChildSettings({
           loading={revBusy}
           onConfirm={doRevoke}
           onCancel={() => setRevoking(null)}
+        />
+      )}
+      {confirmDelete && (
+        <ConfirmModal
+          title={`Delete ${child.name}?`}
+          message="Every logged entry for this child will be permanently deleted. This can't be undone."
+          confirmLabel="Delete forever"
+          tone="danger"
+          loading={deleting}
+          onConfirm={doDelete}
+          onCancel={() => setConfirmDelete(false)}
         />
       )}
     </div>

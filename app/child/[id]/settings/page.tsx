@@ -10,8 +10,8 @@ export default async function SettingsPage({ params }: { params: { id: string } 
   const role = await caregiverRole(user.id, params.id);
   if (!role) notFound();
 
-  const child = await queryOne<{ id: string; name: string }>(
-    "select id, name from children where id = $1",
+  const child = await queryOne<{ id: string; name: string; birth_date: string | null; sex: string }>(
+    "select id, name, birth_date, sex from children where id = $1",
     [params.id]
   );
   if (!child) notFound();
