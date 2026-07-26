@@ -84,7 +84,9 @@ export default function EventsGrid({
     const s = [...rows].sort((a, b) => {
       const ta = a.start ? new Date(a.start).getTime() : Infinity;
       const tb = b.start ? new Date(b.start).getTime() : Infinity;
-      return tb - ta;
+      if (tb !== ta) return tb - ta;
+      // tie: a row WITH an end time sorts below one without
+      return (a.end ? 1 : 0) - (b.end ? 1 : 0);
     });
     orderRef.current = s.map((r) => r.key);
     return s;

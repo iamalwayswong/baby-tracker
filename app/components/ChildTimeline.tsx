@@ -477,5 +477,14 @@ function groupByDay(events: EventRow[]): [string, EventRow[]][] {
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(e);
   }
+  // newest start first; on a tie, an event WITH an end time sorts below one
+  // without (it clearly extends past that shared start moment)
+  for (const items of map.values()) {
+    items.sort((a, b) => {
+      const d = +new Date(b.start_time) - +new Date(a.start_time);
+      if (d) return d;
+      return (a.end_time ? 1 : 0) - (b.end_time ? 1 : 0);
+    });
+  }
   return Array.from(map.entries());
 }
