@@ -42,16 +42,18 @@ export type RangeStats = {
   avgFeedsPerDay: number;
   avgSleepSecondsPerDay: number;
   avgDiapersPerDay: number;
-  // nursing
-  avgNursingSeconds: number; // per session
-  avgLeftSeconds: number;
-  avgRightSeconds: number;
+};
+
+// Rich detail that works over any event set — a single day or a whole range.
+export type DetailStats = {
   nursingSessions: number;
-  // sleep
-  longestSleepSeconds: number; // single longest stretch in range
-  // feed cadence
+  avgNursingSeconds: number; // per session
+  avgLeftSeconds: number; // per session that used the left side
+  avgRightSeconds: number;
+  totalLeftSeconds: number; // summed across the set
+  totalRightSeconds: number;
+  longestSleepSeconds: number;
   avgGapBetweenFeedsSeconds: number | null;
-  // diaper breakdown
   diaper: { wet: number; dirty: number; mixed: number; total: number };
 };
 
@@ -110,47 +112,72 @@ export function dailySeries(events: StatEvent[], now: Date, days: number): DaySt
 
 const avg = (nums: number[]) => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0);
 
-/** Range averages over COMPLETE days only (today excluded). */
+/** Per-day averages over COMPLETE days only (today excluded). */
 export function rangeStats(events: StatEvent[], now: Date, days: number): RangeStats {
-  const series = dailySeries(events, now, days);
-  const complete = series.filter((d) => !d.isPartial);
-
-  // Complete-day events only, for cadence + nursing + diapers within the range.
-  const completeKeys = new Set(complete.map((d) => d.key));
-  const inRange = events.filter((e) => completeKeys.has(localDayKey(new Date(e.start_time))));
-
-  const nursing = inRange.filter((e) => e.type === "feed_breast");
-  const nursingDurs = nursing.map(durationSeconds).filter((s) => s > 0);
-  const lefts = nursing.map((e) => e.data?.left_seconds ?? 0).filter((s: number) => s > 0);
-  const rights = nursing.map((e) => e.data?.right_seconds ?? 0).filter((s: number) => s > 0);
-
-  // avg gap between consecutive milk feeds, within each complete day
-  const gaps: number[] = [];
-  for (const key of completeKeys) {
-    const feeds = inRange
-      .filter((e) => MILK_FEEDS.includes(e.type) && localDayKey(new Date(e.start_time)) === key)
-      .map((e) => +new Date(e.start_time))
-      .sort((a, b) => a - b);
-    for (let i = 1; i < feeds.length; i++) gaps.push((feeds[i] - feeds[i - 1]) / 1000);
-  }
-
-  const diaper = { wet: 0, dirty: 0, mixed: 0, total: 0 };
-  for (const e of inRange.filter((e) => e.type === "diaper")) {
-    const k = e.data?.kind as "wet" | "dirty" | "mixed" | undefined;
-    if (k && k in diaper) (diaper as any)[k]++;
-    diaper.total++;
-  }
-
+  const complete = dailySeries(events, now, days).filter((d) => !d.isPartial);
   return {
     completeDays: complete.length,
     avgFeedsPerDay: avg(complete.map((d) => d.feeds)),
     avgSleepSecondsPerDay: avg(complete.map((d) => d.sleepSeconds)),
     avgDiapersPerDay: avg(complete.map((d) => d.diapers)),
-    avgNursingSeconds: avg(nursingDurs),
-    avgLeftSeconds: avg(lefts),
-    avgRightSeconds: avg(rights),
+  };
+}
+
+/** Events on a specific local day. */
+export function eventsForDay(events: StatEvent[], dayKey: string): StatEvent[] {
+  return events.filter((e) => localDayKey(new Date(e.start_time)) === dayKey);
+}
+
+/** Events falling on the complete (non-today) days of the range. */
+export function eventsForCompleteDays(events: StatEvent[], now: Date, days: number): StatEvent[] {
+  const completeKeys = new Set(dailySeries(events, now, days).filter((d) => !d.isPartial).map((d) => d.key));
+  return events.filter((e) => completeKeys.has(localDayKey(new Date(e.start_time))));
+}
+
+/** Rich nursing/sleep/diaper detail over any event set (a day or a range). */
+export function detailStats(events: StatEvent[]): DetailStats {
+  const nursing = events.filter((e) => e.type === "feed_breast");
+  const nursingDurs = nursing.map(durationSeconds).filter((s) => s > 0);
+  const lefts = nursing.map((e) => e.data?.left_seconds ?? 0);
+  const rights = nursing.map((e) => e.data?.right_seconds ?? 0);
+
+  // gaps between consecutive milk feeds, within each local day (no overnight gaps)
+  const byDay = new Map<string, number[]>();
+  for (const e of events) {
+    if (!MILK_FEEDS.includes(e.type)) continue;
+    const k = localDayKey(new Date(e.start_time));
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k)!.push(+new Date(e.start_time));
+  }
+  const gaps: number[] = [];
+  for (const times of byDay.values()) {
+    times.sort((a, b) => a - b);
+    for (let i = 1; i < times.length; i++) gaps.push((times[i] - times[i - 1]) / 1000);
+  }
+
+  const longestSleepSeconds = Math.max(0, ...events.filter((e) => e.type === "sleep").map(durationSeconds));
+
+  const diaper = { wet: 0, dirty: 0, mixed: 0, total: 0 };
+  for (const e of events.filter((e) => e.type === "diaper")) {
+    const k = e.data?.kind as "wet" | "dirty" | "mixed" | undefined;
+    if (k && k in diaper) (diaper as any)[k]++;
+    diaper.total++;
+  }
+
+  const sum = (n: number[]) => n.reduce((a, b) => a + b, 0);
+  const posAvg = (n: number[]) => {
+    const p = n.filter((x) => x > 0);
+    return p.length ? avg(p) : 0;
+  };
+
+  return {
     nursingSessions: nursing.length,
-    longestSleepSeconds: Math.max(0, ...complete.map((d) => d.longestSleepSeconds)),
+    avgNursingSeconds: nursingDurs.length ? avg(nursingDurs) : 0,
+    avgLeftSeconds: posAvg(lefts),
+    avgRightSeconds: posAvg(rights),
+    totalLeftSeconds: sum(lefts),
+    totalRightSeconds: sum(rights),
+    longestSleepSeconds,
     avgGapBetweenFeedsSeconds: gaps.length ? avg(gaps) : null,
     diaper,
   };

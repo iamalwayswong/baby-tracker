@@ -1,7 +1,18 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { StatEvent, dailySeries, rangeStats, todayStats, DayStats } from "@/lib/stats";
+import {
+  StatEvent,
+  DayStats,
+  DetailStats,
+  dailySeries,
+  rangeStats,
+  todayStats,
+  detailStats,
+  eventsForDay,
+  eventsForCompleteDays,
+  localDayKey,
+} from "@/lib/stats";
 import { hoursMinutes, minutesLabel, timeAgo } from "@/lib/format";
 import { SIDE } from "@/lib/events";
 import { Card } from "@/app/components/ui";
@@ -29,6 +40,13 @@ export default function StatsView({
   const today = useMemo(() => todayStats(events, now), [events, now]);
   const series = useMemo(() => dailySeries(events, now, range.days), [events, now, range.days]);
   const stats = useMemo(() => rangeStats(events, now, range.days), [events, now, range.days]);
+
+  // detail for Today (partial day) and for the range's complete days
+  const todayDetail = useMemo(() => detailStats(eventsForDay(events, localDayKey(now))), [events, now]);
+  const rangeDetail = useMemo(
+    () => detailStats(eventsForCompleteDays(events, now, range.days)),
+    [events, now, range.days]
+  );
 
   const isToday = rangeKey === "today";
 
@@ -65,14 +83,14 @@ export default function StatsView({
         <Tile label="Diapers" value={String(today.diapers)} sub=" " />
       </div>
 
-      {isToday ? (
-        <p className="mt-6 text-center text-sm text-gray-400">
-          Pick 7 or 30 days to see averages and trends.
-        </p>
-      ) : (
+      {/* full detail for today */}
+      <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-400">Today&apos;s detail</h2>
+      <Details stats={todayDetail} />
+
+      {!isToday && (
         <>
           {/* Averages over complete days */}
-          <div className="mt-7 mb-2 flex items-baseline justify-between">
+          <div className="mt-8 mb-2 flex items-baseline justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Daily average</h2>
             <span className="text-xs text-gray-400">
               over {stats.completeDays} complete day{stats.completeDays === 1 ? "" : "s"}
@@ -103,32 +121,50 @@ export default function StatsView({
                 <BarRow title="Diapers per day" series={series} pick={(d) => d.diapers} fmt={(v) => String(v)} color="bg-lime-500" />
               </div>
 
-              {/* Nursing & sleep detail */}
-              <h2 className="mb-2 mt-7 text-xs font-semibold uppercase tracking-wide text-gray-400">Details</h2>
-              <div className="space-y-2">
-                <DetailRow label="Avg nursing session" value={stats.avgNursingSeconds ? minutesLabel(stats.avgNursingSeconds) : "—"} />
-                <DetailRow
-                  label="Avg per side"
-                  value={
-                    stats.avgLeftSeconds || stats.avgRightSeconds
-                      ? `${SIDE.left.short} ${minutesLabel(stats.avgLeftSeconds)} · ${SIDE.right.short} ${minutesLabel(stats.avgRightSeconds)}`
-                      : "—"
-                  }
-                />
-                <DetailRow label="Longest sleep stretch" value={stats.longestSleepSeconds ? hoursMinutes(stats.longestSleepSeconds) : "—"} />
-                <DetailRow
-                  label="Avg time between feeds"
-                  value={stats.avgGapBetweenFeedsSeconds != null ? hoursMinutes(stats.avgGapBetweenFeedsSeconds) : "—"}
-                />
-                <DetailRow
-                  label="Diapers (wet / dirty / mixed)"
-                  value={stats.diaper.total ? `${stats.diaper.wet} / ${stats.diaper.dirty} / ${stats.diaper.mixed}` : "—"}
-                />
-              </div>
+              {/* range detail (over complete days) */}
+              <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Detail · last {stats.completeDays} day{stats.completeDays === 1 ? "" : "s"}
+              </h2>
+              <Details stats={rangeDetail} />
             </>
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// Shared detail block — used for both a single day and a range.
+function Details({ stats }: { stats: DetailStats }) {
+  return (
+    <div className="space-y-2">
+      <DetailRow label="Nursing sessions" value={stats.nursingSessions ? String(stats.nursingSessions) : "—"} />
+      <DetailRow label="Avg nursing session" value={stats.avgNursingSeconds ? minutesLabel(stats.avgNursingSeconds) : "—"} />
+      <DetailRow
+        label="Avg per side"
+        value={
+          stats.avgLeftSeconds || stats.avgRightSeconds
+            ? `${SIDE.left.short} ${minutesLabel(stats.avgLeftSeconds)} · ${SIDE.right.short} ${minutesLabel(stats.avgRightSeconds)}`
+            : "—"
+        }
+      />
+      <DetailRow
+        label="Total per side"
+        value={
+          stats.totalLeftSeconds || stats.totalRightSeconds
+            ? `${SIDE.left.short} ${hoursMinutes(stats.totalLeftSeconds)} · ${SIDE.right.short} ${hoursMinutes(stats.totalRightSeconds)}`
+            : "—"
+        }
+      />
+      <DetailRow label="Longest sleep stretch" value={stats.longestSleepSeconds ? hoursMinutes(stats.longestSleepSeconds) : "—"} />
+      <DetailRow
+        label="Avg time between feeds"
+        value={stats.avgGapBetweenFeedsSeconds != null ? hoursMinutes(stats.avgGapBetweenFeedsSeconds) : "—"}
+      />
+      <DetailRow
+        label="Diapers (wet / dirty / mixed)"
+        value={stats.diaper.total ? `${stats.diaper.wet} / ${stats.diaper.dirty} / ${stats.diaper.mixed}` : "—"}
+      />
     </div>
   );
 }
