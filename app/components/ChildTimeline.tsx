@@ -106,8 +106,13 @@ export default function ChildTimeline({
     const s = nursingSession;
     const nowIso = new Date().toISOString();
     if (!s) {
-      // start a fresh in-progress session on the tapped side
-      await logEvent("feed_breast", { data: { left_seconds: 0, right_seconds: 0, active_side: side, active_since: nowIso } });
+      // Start the session on the FIRST side tap — its start_time is stamped to
+      // this exact tap moment (not server-receive time), so time spent getting
+      // ready after opening the sheet isn't counted.
+      await logEvent("feed_breast", {
+        start_time: nowIso,
+        data: { left_seconds: 0, right_seconds: 0, active_side: side, active_since: nowIso },
+      });
       return;
     }
     const settled = settleNursing(s.data, Date.now());
