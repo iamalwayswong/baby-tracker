@@ -3,7 +3,13 @@ import { getCurrentUser, caregiverRole } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import ChildTimeline from "@/app/components/ChildTimeline";
 
-export default async function ChildPage({ params }: { params: { id: string } }) {
+export default async function ChildPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { open?: string };
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const role = await caregiverRole(user.id, params.id);
@@ -31,5 +37,12 @@ export default async function ChildPage({ params }: { params: { id: string } }) 
     [user.id]
   );
 
-  return <ChildTimeline child={child} initialEvents={events} siblings={siblings} />;
+  return (
+    <ChildTimeline
+      child={child}
+      initialEvents={events}
+      siblings={siblings}
+      openNursing={searchParams?.open === "nursing"}
+    />
+  );
 }

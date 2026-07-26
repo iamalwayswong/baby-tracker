@@ -40,13 +40,15 @@ export default function ChildTimeline({
   child,
   initialEvents,
   siblings = [],
+  openNursing = false,
 }: {
   child: { id: string; name: string; birth_date: string | null; sex: string };
   initialEvents: EventRow[];
   siblings?: { id: string; name: string }[];
+  openNursing?: boolean;
 }) {
   const [events, setEvents] = useState<EventRow[]>(initialEvents);
-  const [sheet, setSheet] = useState<Sheet>(null);
+  const [sheet, setSheet] = useState<Sheet>(openNursing ? { kind: "nursing" } : null);
   const [now, setNow] = useState(() => Date.now());
 
   // tick every second so live timers update
