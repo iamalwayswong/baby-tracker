@@ -14,6 +14,7 @@ import {
   sideDuration,
 } from "@/lib/events";
 import { clockTime, dayLabel, humanDuration, stopwatch, timeAgo } from "@/lib/format";
+import { predictNap } from "@/lib/predict";
 import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
 import LogSheet from "./LogSheet";
@@ -98,6 +99,12 @@ export default function ChildTimeline({
 
   const sleepInProgress = inProgress.find((e) => e.type === "sleep");
 
+  // next-nap prediction (recomputes as `now` ticks)
+  const nap = useMemo(
+    () => predictNap(events, child.birth_date, new Date(now)),
+    [events, child.birth_date, now]
+  );
+
   async function quickTap(type: EventType) {
     if (type === "feed_breast") return setSheet({ kind: "nursing" });
     if (type === "sleep") {
@@ -165,6 +172,9 @@ export default function ChildTimeline({
           ))}
         </div>
       )}
+
+      {/* next-nap prediction */}
+      {nap.state === "predict" && <NapBanner nextWindowMs={nap.nextWindowMs} wakeWindowMin={nap.wakeWindowMin} personalized={nap.personalized} childName={child.name} nowMs={now} />}
 
       {/* quick log bar */}
       <div className="grid grid-cols-4 gap-3 px-5 py-4">
@@ -253,6 +263,44 @@ export default function ChildTimeline({
           }}
         />
       )}
+    </div>
+  );
+}
+
+function NapBanner({
+  nextWindowMs,
+  wakeWindowMin,
+  personalized,
+  childName,
+  nowMs,
+}: {
+  nextWindowMs: number;
+  wakeWindowMin: number;
+  personalized: boolean;
+  childName: string;
+  nowMs: number;
+}) {
+  const diffMin = Math.round((nextWindowMs - nowMs) / 60000);
+  const overdue = diffMin < 0;
+  const when = clockTime(new Date(nextWindowMs).toISOString());
+  const rel = overdue
+    ? `window open · ${humanDuration(-diffMin * 60)} ago`
+    : diffMin === 0
+    ? "window opening now"
+    : `in ${humanDuration(diffMin * 60)}`;
+  return (
+    <div className="px-5 pt-2">
+      <div className={`flex items-center justify-between rounded-2xl px-4 py-3 ${overdue ? "bg-amber-100" : "bg-indigo-50"}`}>
+        <div>
+          <p className="text-sm font-semibold text-gray-800">
+            😴 Next nap ~{when}
+          </p>
+          <p className="text-xs text-gray-500">
+            {rel} · ~{wakeWindowMin}m awake{personalized ? ` · tuned to ${childName}` : ""}
+          </p>
+        </div>
+        <span className={`text-2xl ${overdue ? "" : "opacity-60"}`}>{overdue ? "🥱" : "🔮"}</span>
+      </div>
     </div>
   );
 }
