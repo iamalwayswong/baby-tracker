@@ -49,7 +49,17 @@ function Body({ type, data, setData }: { type: EventType; data: any; setData: (d
 
   switch (type) {
     case "diaper":
-      return <ChoiceChips options={["wet", "dirty", "mixed"]} value={data.kind} onChange={(v) => set({ kind: v })} />;
+      return (
+        <ChoiceChips
+          options={[
+            { value: "poop", label: "Poop" },
+            { value: "pee", label: "Pee" },
+            { value: "both", label: "Both" },
+          ]}
+          value={data.kind}
+          onChange={(v) => set({ kind: v })}
+        />
+      );
     case "feed_bottle":
       return (
         <div className="space-y-3">

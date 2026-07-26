@@ -9,6 +9,7 @@ export type EventType =
   | "feed_solid"
   | "pump"
   | "diaper"
+  | "bath"
   | "growth"
   | "medicine"
   | "temperature"
@@ -30,8 +31,9 @@ export interface EventDef {
 export const EVENT_DEFS: Record<EventType, EventDef> = {
   sleep:        { type: "sleep",        label: "Sleep",       emoji: "😴", kind: "duration", quick: true,  color: "bg-indigo-500" },
   feed_breast:  { type: "feed_breast",  label: "Nursing",     emoji: "🤱", kind: "duration", quick: true,  color: "bg-rose-500" },
-  feed_bottle:  { type: "feed_bottle",  label: "Bottle",      emoji: "🍼", kind: "point",    quick: true,  color: "bg-amber-500" },
   diaper:       { type: "diaper",       label: "Diaper",      emoji: "💩", kind: "point",    quick: true,  color: "bg-lime-600" },
+  bath:         { type: "bath",         label: "Bath",        emoji: "🛁", kind: "point",    quick: true,  color: "bg-cyan-500" },
+  feed_bottle:  { type: "feed_bottle",  label: "Bottle",      emoji: "🍼", kind: "point",    quick: false, color: "bg-amber-500" },
   feed_solid:   { type: "feed_solid",   label: "Solids",      emoji: "🥣", kind: "point",    quick: false, color: "bg-orange-500" },
   pump:         { type: "pump",         label: "Pump",        emoji: "🥛", kind: "point",    quick: false, color: "bg-sky-500" },
   growth:       { type: "growth",       label: "Growth",      emoji: "📏", kind: "point",    quick: false, color: "bg-emerald-600" },

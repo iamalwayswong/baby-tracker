@@ -162,8 +162,8 @@ function Details({ stats }: { stats: DetailStats }) {
         value={stats.avgGapBetweenFeedsSeconds != null ? hoursMinutes(stats.avgGapBetweenFeedsSeconds) : "—"}
       />
       <DetailRow
-        label="Diapers (wet / dirty / mixed)"
-        value={stats.diaper.total ? `${stats.diaper.wet} / ${stats.diaper.dirty} / ${stats.diaper.mixed}` : "—"}
+        label="Diapers (poop / pee / both)"
+        value={stats.diaper.total ? `${stats.diaper.poop} / ${stats.diaper.pee} / ${stats.diaper.both}` : "—"}
       />
     </div>
   );

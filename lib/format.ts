@@ -26,12 +26,15 @@ export function humanDuration(seconds: number): string {
   return `${sec}s`;
 }
 
-/** mm:ss for a live-running timer */
+/** Live-running timer: m:ss under an hour, h:mm:ss once past an hour. */
 export function stopwatch(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
-  const m = Math.floor(s / 60);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, "0")}`;
+  const ss = sec.toString().padStart(2, "0");
+  if (h) return `${h}:${m.toString().padStart(2, "0")}:${ss}`;
+  return `${m}:${ss}`;
 }
 
 /** ISO string -> value for a <input type="datetime-local"> in local time */

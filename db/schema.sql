@@ -73,3 +73,9 @@ create index if not exists events_in_progress_idx on events (child_id) where end
 -- timeline reads only non-deleted rows
 create index if not exists events_active_idx on events (child_id, start_time desc) where deleted_at is null;
 create index if not exists caregivers_user_idx on caregivers (user_id);
+
+-- Diaper kinds were renamed wet/dirty/mixed -> pee/poop/both. Idempotent
+-- backfill (no matching rows remain after the first run).
+update events set data = jsonb_set(data, '{kind}', '"pee"')  where type = 'diaper' and data->>'kind' = 'wet';
+update events set data = jsonb_set(data, '{kind}', '"poop"') where type = 'diaper' and data->>'kind' = 'dirty';
+update events set data = jsonb_set(data, '{kind}', '"both"') where type = 'diaper' and data->>'kind' = 'mixed';

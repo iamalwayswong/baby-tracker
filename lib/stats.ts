@@ -54,7 +54,7 @@ export type DetailStats = {
   totalRightSeconds: number;
   longestSleepSeconds: number;
   avgGapBetweenFeedsSeconds: number | null;
-  diaper: { wet: number; dirty: number; mixed: number; total: number };
+  diaper: { pee: number; poop: number; both: number; total: number };
 };
 
 export type TodayStats = {
@@ -157,9 +157,9 @@ export function detailStats(events: StatEvent[]): DetailStats {
 
   const longestSleepSeconds = Math.max(0, ...events.filter((e) => e.type === "sleep").map(durationSeconds));
 
-  const diaper = { wet: 0, dirty: 0, mixed: 0, total: 0 };
+  const diaper = { pee: 0, poop: 0, both: 0, total: 0 };
   for (const e of events.filter((e) => e.type === "diaper")) {
-    const k = e.data?.kind as "wet" | "dirty" | "mixed" | undefined;
+    const k = e.data?.kind as "pee" | "poop" | "both" | undefined;
     if (k && k in diaper) (diaper as any)[k]++;
     diaper.total++;
   }

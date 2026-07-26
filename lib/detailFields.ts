@@ -21,7 +21,7 @@ export const DETAIL_FIELDS: Partial<Record<EventType, FieldSpec[]>> = {
     { key: "left_ml", label: "L", kind: "number", unit: "ml" },
     { key: "right_ml", label: "R", kind: "number", unit: "ml" },
   ],
-  diaper: [{ key: "kind", label: "", kind: "select", options: ["wet", "dirty", "mixed"] }],
+  diaper: [{ key: "kind", label: "", kind: "select", options: ["poop", "pee", "both"] }],
   growth: [
     { key: "weight_g", label: "wt", kind: "number", unit: "g" },
     { key: "height_cm", label: "ht", kind: "number", unit: "cm" },
