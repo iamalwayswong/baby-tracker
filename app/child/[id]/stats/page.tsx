@@ -14,13 +14,13 @@ export default async function StatsPage({ params }: { params: { id: string } }) 
   );
   if (!child) notFound();
 
-  // last ~31 days of (non-deleted) events; aggregation happens client-side in
-  // the viewer's local timezone.
+  // last ~6 months of (non-deleted) events, so the date picker has history to
+  // work with; aggregation happens client-side in the viewer's local timezone.
   const events = await query(
     `select type, start_time, end_time, data
        from events
       where child_id = $1 and deleted_at is null
-        and start_time >= now() - interval '31 days'
+        and start_time >= now() - interval '186 days'
       order by start_time asc`,
     [params.id]
   );

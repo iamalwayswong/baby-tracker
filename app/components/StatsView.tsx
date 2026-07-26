@@ -5,23 +5,33 @@ import {
   StatEvent,
   DayStats,
   DetailStats,
-  dailySeries,
-  rangeStats,
   todayStats,
   detailStats,
   eventsForDay,
-  eventsForCompleteDays,
+  eventsForKeys,
+  keysEndingToday,
+  keysBetween,
+  seriesForKeys,
+  averagesForSeries,
   localDayKey,
 } from "@/lib/stats";
 import { hoursMinutes, minutesLabel, timeAgo } from "@/lib/format";
 import { SIDE } from "@/lib/events";
 import { Card } from "@/app/components/ui";
 
-const RANGES = [
+const PRESETS = [
   { key: "today", label: "Today", days: 1 },
   { key: "7d", label: "7 days", days: 7 },
   { key: "30d", label: "30 days", days: 30 },
 ] as const;
+
+type PresetKey = (typeof PRESETS)[number]["key"];
+type Selection = { kind: "preset"; key: PresetKey } | { kind: "custom" };
+
+function ymd(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 export default function StatsView({
   childId,
@@ -32,23 +42,44 @@ export default function StatsView({
   childName: string;
   events: StatEvent[];
 }) {
-  const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]["key"]>("7d");
-  const range = RANGES.find((r) => r.key === rangeKey)!;
   // stamp "now" once per render; fine for a stats screen
   const now = useMemo(() => new Date(), []);
+  const todayKey = localDayKey(now);
+  const minDate = useMemo(() => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 185);
+    return ymd(d);
+  }, [now]);
+
+  const [sel, setSel] = useState<Selection>({ kind: "preset", key: "7d" });
+  const [from, setFrom] = useState(() => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 6);
+    return ymd(d);
+  });
+  const [to, setTo] = useState(() => ymd(now));
+
+  // day keys under analysis (oldest first)
+  const keys = useMemo(() => {
+    if (sel.kind === "preset") {
+      const days = PRESETS.find((p) => p.key === sel.key)!.days;
+      return keysEndingToday(now, days);
+    }
+    // custom: guard against reversed dates
+    return from <= to ? keysBetween(from, to) : keysBetween(to, from);
+  }, [sel, from, to, now]);
+
+  const includesToday = keys.includes(todayKey);
+  const completeKeys = useMemo(() => keys.filter((k) => k !== todayKey), [keys, todayKey]);
 
   const today = useMemo(() => todayStats(events, now), [events, now]);
-  const series = useMemo(() => dailySeries(events, now, range.days), [events, now, range.days]);
-  const stats = useMemo(() => rangeStats(events, now, range.days), [events, now, range.days]);
+  const series = useMemo(() => seriesForKeys(events, keys, todayKey), [events, keys, todayKey]);
+  const stats = useMemo(() => averagesForSeries(series), [series]);
+  const todayDetail = useMemo(() => detailStats(eventsForDay(events, todayKey)), [events, todayKey]);
+  const rangeDetail = useMemo(() => detailStats(eventsForKeys(events, completeKeys)), [events, completeKeys]);
 
-  // detail for Today (partial day) and for the range's complete days
-  const todayDetail = useMemo(() => detailStats(eventsForDay(events, localDayKey(now))), [events, now]);
-  const rangeDetail = useMemo(
-    () => detailStats(eventsForCompleteDays(events, now, range.days)),
-    [events, now, range.days]
-  );
-
-  const isToday = rangeKey === "today";
+  // a "single day" view (one preset=today, or a one-day custom range)
+  const singleDay = keys.length === 1;
 
   return (
     <div className="min-h-dvh px-5 py-6">
@@ -61,44 +92,83 @@ export default function StatsView({
       </header>
 
       {/* range toggle */}
-      <div className="mb-5 flex gap-2">
-        {RANGES.map((r) => (
+      <div className="mb-3 flex gap-2">
+        {PRESETS.map((r) => (
           <button
             key={r.key}
-            onClick={() => setRangeKey(r.key)}
+            onClick={() => setSel({ kind: "preset", key: r.key })}
             className={`tap flex-1 rounded-xl border py-2 text-sm font-medium ${
-              rangeKey === r.key ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-300 text-gray-600"
+              sel.kind === "preset" && sel.key === r.key ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-300 text-gray-600"
             }`}
           >
             {r.label}
           </button>
         ))}
+        <button
+          onClick={() => setSel({ kind: "custom" })}
+          className={`tap flex-1 rounded-xl border py-2 text-sm font-medium ${
+            sel.kind === "custom" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-300 text-gray-600"
+          }`}
+        >
+          Custom
+        </button>
       </div>
 
-      {/* Today so far — always shown, never averaged in */}
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Today so far</h2>
-      <div className="grid grid-cols-3 gap-3">
-        <Tile label="Feeds" value={String(today.feeds)} sub={today.lastFeedAgoSeconds != null ? `last ${ago(today.lastFeedAgoSeconds)}` : "—"} />
-        <Tile label="Sleep" value={hoursMinutes(today.sleepSeconds)} sub={today.sleepInProgress ? "sleeping now" : " "} />
-        <Tile label="Diapers" value={String(today.diapers)} sub=" " />
-      </div>
+      {sel.kind === "custom" && (
+        <div className="mb-5 flex items-end gap-2">
+          <label className="flex-1 text-xs text-gray-500">
+            From
+            <input
+              type="date"
+              value={from}
+              min={minDate}
+              max={to}
+              onChange={(e) => setFrom(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex-1 text-xs text-gray-500">
+            To
+            <input
+              type="date"
+              value={to}
+              min={from}
+              max={ymd(now)}
+              onChange={(e) => setTo(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+      )}
 
-      {/* full detail for today */}
-      <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-400">Today&apos;s detail</h2>
-      <Details stats={todayDetail} />
-
-      {!isToday && (
+      {/* Today so far — only when the range includes today */}
+      {includesToday && (
         <>
-          {/* Averages over complete days */}
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Today so far</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <Tile label="Feeds" value={String(today.feeds)} sub={today.lastFeedAgoSeconds != null ? `last ${ago(today.lastFeedAgoSeconds)}` : "—"} />
+            <Tile label="Sleep" value={hoursMinutes(today.sleepSeconds)} sub={today.sleepInProgress ? "sleeping now" : " "} />
+            <Tile label="Diapers" value={String(today.diapers)} sub=" " />
+          </div>
+          <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-400">Today&apos;s detail</h2>
+          <Details stats={todayDetail} />
+        </>
+      )}
+
+      {/* averages/bars/detail over the selected complete days (unless it's just today) */}
+      {!(singleDay && includesToday) && (
+        <>
           <div className="mt-8 mb-2 flex items-baseline justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Daily average</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {stats.completeDays === 1 ? "That day" : "Daily average"}
+            </h2>
             <span className="text-xs text-gray-400">
-              over {stats.completeDays} complete day{stats.completeDays === 1 ? "" : "s"}
+              {stats.completeDays} day{stats.completeDays === 1 ? "" : "s"}
             </span>
           </div>
           {stats.completeDays === 0 ? (
             <Card subtle className="text-center text-sm text-gray-400">
-              Not enough history yet — averages need at least one complete day.
+              No complete days in this range yet.
             </Card>
           ) : (
             <>
@@ -123,7 +193,7 @@ export default function StatsView({
 
               {/* range detail (over complete days) */}
               <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                Detail · last {stats.completeDays} day{stats.completeDays === 1 ? "" : "s"}
+                Detail · {stats.completeDays} day{stats.completeDays === 1 ? "" : "s"}
               </h2>
               <Details stats={rangeDetail} />
             </>

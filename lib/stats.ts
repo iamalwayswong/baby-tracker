@@ -128,6 +128,55 @@ export function eventsForDay(events: StatEvent[], dayKey: string): StatEvent[] {
   return events.filter((e) => localDayKey(new Date(e.start_time)) === dayKey);
 }
 
+// ——— arbitrary day-range support (for the stats date picker) ———
+
+/** Local day keys for the last `days` days ending today (oldest first). */
+export function keysEndingToday(now: Date, days: number): string[] {
+  const out: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    out.push(localDayKey(d));
+  }
+  return out;
+}
+
+/** Inclusive local day keys between two YYYY-MM-DD keys (oldest first, capped). */
+export function keysBetween(fromKey: string, toKey: string): string[] {
+  const out: string[] = [];
+  const d = new Date(fromKey + "T00:00:00");
+  const end = new Date(toKey + "T00:00:00");
+  let guard = 0;
+  while (d.getTime() <= end.getTime() && guard++ < 400) {
+    out.push(localDayKey(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+/** Per-day stats for an explicit list of day keys. */
+export function seriesForKeys(events: StatEvent[], keys: string[], todayKey: string): DayStats[] {
+  const buckets = bucketByDay(events);
+  return keys.map((k) => dayStatsFor(k, buckets.get(k) ?? [], todayKey));
+}
+
+/** Averages over the complete (non-today) days of a series. */
+export function averagesForSeries(series: DayStats[]): RangeStats {
+  const complete = series.filter((d) => !d.isPartial);
+  return {
+    completeDays: complete.length,
+    avgFeedsPerDay: avg(complete.map((d) => d.feeds)),
+    avgSleepSecondsPerDay: avg(complete.map((d) => d.sleepSeconds)),
+    avgDiapersPerDay: avg(complete.map((d) => d.diapers)),
+  };
+}
+
+/** Events falling on any of the given local day keys. */
+export function eventsForKeys(events: StatEvent[], keys: string[]): StatEvent[] {
+  const set = new Set(keys);
+  return events.filter((e) => set.has(localDayKey(new Date(e.start_time))));
+}
+
 /** Events falling on the complete (non-today) days of the range. */
 export function eventsForCompleteDays(events: StatEvent[], now: Date, days: number): StatEvent[] {
   const completeKeys = new Set(dailySeries(events, now, days).filter((d) => !d.isPartial).map((d) => d.key));
