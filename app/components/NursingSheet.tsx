@@ -1,83 +1,81 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { stopwatch, humanDuration } from "@/lib/format";
-import { Side, SIDE } from "@/lib/events";
+import { Side, SIDE, liveNursing } from "@/lib/events";
 
-// The live timer ticks in m:ss so you can watch it run; exact seconds are
-// stored in the DB. Everywhere the app *displays* a nursing duration
-// (timeline, stats) it rounds to the nearest minute (see sideDuration).
+type EventRow = {
+  id: string;
+  type: string;
+  start_time: string;
+  end_time: string | null;
+  data: any;
+};
 
-// Full-screen nursing timer. Tap L or R to run that side; tapping the active
-// side pauses. Left = blue, Right = pink. On open it reminds you which side you
-// nursed last and highlights the side to start on next (the opposite one).
+// Full-screen nursing timer, backed by a server-side in-progress feed_breast.
+// Elapsed is computed from stored timestamps (via liveNursing), so it stays
+// correct across backgrounding / app close, and you can close this sheet and
+// keep nursing running in the background (an in-progress banner appears).
 export default function NursingSheet({
+  session,
   suggestedSide,
   lastSide,
+  onSide,
   onSave,
+  onDiscard,
   onClose,
 }: {
+  session: EventRow | null;
   suggestedSide: Side;
   lastSide: Side | null;
-  onSave: (payload: { start_time: string; end_time: string; data: any }) => Promise<void>;
-  onClose: () => void;
+  onSide: (side: Side) => void; // parent starts/switches/pauses on the server
+  onSave: () => Promise<void> | void;
+  onDiscard: () => Promise<void> | void;
+  onClose: () => void; // minimize — keep running in the background
 }) {
-  const [left, setLeft] = useState(0);
-  const [right, setRight] = useState(0);
-  const [active, setActive] = useState<Side | null>(null);
-  const [lastActive, setLastActive] = useState<Side | null>(null);
-  const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);
-  const tick = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (active) {
-      tick.current = setInterval(() => {
-        if (active === "left") setLeft((s) => s + 1);
-        else setRight((s) => s + 1);
-      }, 1000);
-    }
-    return () => {
-      if (tick.current) clearInterval(tick.current);
-    };
-  }, [active]);
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, []);
 
-  function tap(side: Side) {
-    if (!startedAt) setStartedAt(new Date().toISOString());
-    setLastActive(side);
-    setActive((cur) => (cur === side ? null : side));
-  }
+  const { left, right, active } = session
+    ? liveNursing(session.data, now)
+    : { left: 0, right: 0, active: null as Side | null };
+  const total = left + right;
+  const started = total > 0 || !!session;
 
   async function save() {
-    if (left === 0 && right === 0) return onClose();
     setSaving(true);
     try {
-      await onSave({
-        start_time: startedAt ?? new Date().toISOString(),
-        end_time: new Date().toISOString(),
-        data: { left_seconds: left, right_seconds: right, last_side: lastActive ?? suggestedSide },
-      });
+      await onSave();
     } finally {
       setSaving(false);
     }
   }
 
-  const total = left + right;
-
   return (
     <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col bg-white px-5 py-6">
       <div className="flex items-center justify-between">
         <button onClick={onClose} className="tap text-gray-500 active:text-gray-700">
-          Cancel
+          {session ? "Minimize" : "Close"}
         </button>
         <span className="font-semibold text-gray-800">🤱 Nursing</span>
-        <button onClick={save} disabled={saving} className="tap font-semibold text-brand-600 active:text-brand-800 disabled:opacity-40">
+        <button
+          onClick={save}
+          disabled={saving || total < 1}
+          className="tap font-semibold text-brand-600 active:text-brand-800 disabled:opacity-40"
+        >
           {saving ? "…" : "Save"}
         </button>
       </div>
 
-      {/* which side last time + which to start on now */}
+      {/* last side / start hint */}
       <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-center text-sm">
-        {lastSide ? (
+        {session ? (
+          <span className="text-gray-500">Running in the background — you can close this and come back.</span>
+        ) : lastSide ? (
           <>
             <span className="text-gray-500">Last time: </span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${SIDE[lastSide].soft}`}>{SIDE[lastSide].label}</span>
@@ -85,7 +83,7 @@ export default function NursingSheet({
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${SIDE[suggestedSide].soft}`}>{SIDE[suggestedSide].label}</span>
           </>
         ) : (
-          <span className="text-gray-500">First feed logged — start on either side</span>
+          <span className="text-gray-500">First feed — start on either side</span>
         )}
       </div>
 
@@ -93,13 +91,19 @@ export default function NursingSheet({
       <p className="text-center text-5xl font-bold tabular-nums">{stopwatch(total)}</p>
 
       <div className="mt-8 grid flex-1 grid-cols-2 gap-4">
-        <SideButton side="left" seconds={left} active={active === "left"} suggested={suggestedSide === "left" && total === 0} onTap={() => tap("left")} />
-        <SideButton side="right" seconds={right} active={active === "right"} suggested={suggestedSide === "right" && total === 0} onTap={() => tap("right")} />
+        <SideButton side="left" seconds={left} active={active === "left"} suggested={suggestedSide === "left" && !started} onTap={() => onSide("left")} />
+        <SideButton side="right" seconds={right} active={active === "right"} suggested={suggestedSide === "right" && !started} onTap={() => onSide("right")} />
       </div>
 
       <p className="mt-6 text-center text-sm text-gray-500">
         {active ? "Tap the running side to pause" : "Tap a side to start the timer"}
       </p>
+
+      {session && (
+        <button onClick={() => onDiscard()} className="tap mt-3 text-center text-sm font-medium text-red-500 active:text-red-700">
+          Discard this session
+        </button>
+      )}
     </div>
   );
 }

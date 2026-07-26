@@ -12,6 +12,8 @@ import {
   SIDE,
   nursingSides,
   sideDuration,
+  settleNursing,
+  liveNursing,
 } from "@/lib/events";
 import { clockTime, dayLabel, humanDuration, stopwatch, timeAgo } from "@/lib/format";
 import { predictNap } from "@/lib/predict";
@@ -87,8 +89,52 @@ export default function ChildTimeline({
     upsert(event);
   }
 
+  async function patchEvent(id: string, body: any) {
+    const { event } = await api<{ event: EventRow }>(`/api/events/${id}`, { method: "PATCH", json: body });
+    upsert(event);
+    return event;
+  }
+
   // in-progress duration events (running timers, shared across parents)
   const inProgress = events.filter((e) => !e.end_time && EVENT_DEFS[e.type]?.kind === "duration");
+  const nursingSession = inProgress.find((e) => e.type === "feed_breast") ?? null;
+
+  // ——— nursing session control (server-backed, timestamp-based) ———
+  async function nurseTapSide(side: Side) {
+    const s = nursingSession;
+    const nowIso = new Date().toISOString();
+    if (!s) {
+      // start a fresh in-progress session on the tapped side
+      await logEvent("feed_breast", { data: { left_seconds: 0, right_seconds: 0, active_side: side, active_since: nowIso } });
+      return;
+    }
+    const settled = settleNursing(s.data, Date.now());
+    if (s.data?.active_side === side) {
+      await patchEvent(s.id, { data: settled }); // tapping the running side pauses
+    } else {
+      await patchEvent(s.id, { data: { ...settled, active_side: side, active_since: nowIso } }); // switch
+    }
+  }
+
+  async function nurseSave() {
+    const s = nursingSession;
+    if (!s) return setSheet(null);
+    const settled = settleNursing(s.data, Date.now());
+    const last_side = (s.data?.active_side as Side) ?? (s.data?.last_side as Side) ?? (settled.left_seconds >= settled.right_seconds ? "left" : "right");
+    await patchEvent(s.id, {
+      end_time: new Date().toISOString(),
+      data: { left_seconds: settled.left_seconds, right_seconds: settled.right_seconds, last_side },
+    });
+    setSheet(null);
+  }
+
+  async function nurseDiscard() {
+    if (nursingSession) {
+      await api(`/api/events/${nursingSession.id}`, { method: "DELETE" });
+      setEvents((l) => l.filter((x) => x.id !== nursingSession.id));
+    }
+    setSheet(null);
+  }
 
   // the last side nursed (if any), and the suggested next side (the opposite)
   const lastSide: Side | null = useMemo(() => {
@@ -143,33 +189,56 @@ export default function ChildTimeline({
       {/* in-progress banners */}
       {inProgress.length > 0 && (
         <div className="space-y-2 px-5 pt-2">
-          {inProgress.map((e) => (
-            <div
-              key={e.id}
-              className="flex items-center justify-between rounded-2xl bg-brand-600 px-4 py-3 text-white"
-            >
-              <div>
-                <p className="text-sm font-medium">
-                  {EVENT_DEFS[e.type].emoji} {EVENT_DEFS[e.type].label} in progress
-                </p>
-                <p className="text-xs opacity-80">
-                  started {timeAgo(e.start_time)}
-                  {e.created_by_name ? ` by ${e.created_by_name}` : ""}
-                </p>
+          {inProgress.map((e) =>
+            e.type === "feed_breast" ? (
+              // nursing: tap to resume the L/R sheet; shows live per-side time
+              <button
+                key={e.id}
+                onClick={() => setSheet({ kind: "nursing" })}
+                className="tap flex w-full items-center justify-between rounded-2xl bg-rose-500 px-4 py-3 text-left text-white active:bg-rose-600"
+              >
+                <div>
+                  <p className="text-sm font-medium">🤱 Nursing in progress</p>
+                  <p className="text-xs opacity-80">
+                    {(() => {
+                      const { left, right, active } = liveNursing(e.data, now);
+                      const parts = [];
+                      if (left) parts.push(`L ${sideDuration(left)}`);
+                      if (right) parts.push(`R ${sideDuration(right)}`);
+                      return `${parts.join(" · ") || "starting…"}${active ? "" : " · paused"}`;
+                    })()}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-rose-600">Resume</span>
+              </button>
+            ) : (
+              <div
+                key={e.id}
+                className="flex items-center justify-between rounded-2xl bg-brand-600 px-4 py-3 text-white"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {EVENT_DEFS[e.type].emoji} {EVENT_DEFS[e.type].label} in progress
+                  </p>
+                  <p className="text-xs opacity-80">
+                    started {timeAgo(e.start_time)}
+                    {e.created_by_name ? ` by ${e.created_by_name}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl font-bold tabular-nums">
+                    {stopwatch((now - +new Date(e.start_time)) / 1000)}
+                  </span>
+                  <button
+                    onClick={() => stopTimer(e.id)}
+                    className="tap rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand-700"
+                  >
+                    Stop
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xl font-bold tabular-nums">
-                  {stopwatch((now - +new Date(e.start_time)) / 1000)}
-                </span>
-                <button
-                  onClick={() => stopTimer(e.id)}
-                  className="tap rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand-700"
-                >
-                  Stop
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
 
@@ -183,6 +252,7 @@ export default function ChildTimeline({
           const isActiveSleep = type === "sleep" && sleepInProgress;
           const label =
             isActiveSleep ? "Stop"
+            : type === "feed_breast" && nursingSession ? "Nursing…"
             : type === "feed_breast" && lastSide ? `Nurse ${SIDE[suggestedSide].short}`
             : def.label;
           return (
@@ -230,13 +300,13 @@ export default function ChildTimeline({
       {/* sheets */}
       {sheet?.kind === "nursing" && (
         <NursingSheet
+          session={nursingSession}
           suggestedSide={suggestedSide}
           lastSide={lastSide}
+          onSide={nurseTapSide}
+          onSave={nurseSave}
+          onDiscard={nurseDiscard}
           onClose={() => setSheet(null)}
-          onSave={async (payload) => {
-            await logEvent("feed_breast", payload);
-            setSheet(null);
-          }}
         />
       )}
       {sheet?.kind === "log" && (

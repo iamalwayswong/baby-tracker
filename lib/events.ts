@@ -68,6 +68,34 @@ export function sideDuration(seconds: number): string {
   return m < 1 ? "<1m" : `${m}m`;
 }
 
+// ——— In-progress nursing sessions (server-backed, timestamp-based) ———
+//
+// An in-progress feed_breast stores accumulated per-side seconds plus which
+// side is currently running and when it started, so elapsed is computed from
+// wall-clock timestamps (survives backgrounding / app close) rather than a
+// browser tick counter.
+//   data = { left_seconds, right_seconds, active_side, active_since }
+
+/** Live per-side seconds for an in-progress nursing session, given now (ms). */
+export function liveNursing(data: any, nowMs: number): { left: number; right: number; active: Side | null } {
+  const active = (data?.active_side ?? null) as Side | null;
+  const since = data?.active_since ? +new Date(data.active_since) : null;
+  let left = data?.left_seconds ?? 0;
+  let right = data?.right_seconds ?? 0;
+  if (active && since) {
+    const seg = Math.max(0, (nowMs - since) / 1000);
+    if (active === "left") left += seg;
+    else right += seg;
+  }
+  return { left, right, active };
+}
+
+/** Fold the running segment into the accumulated totals and pause. */
+export function settleNursing(data: any, nowMs: number) {
+  const { left, right } = liveNursing(data, nowMs);
+  return { left_seconds: Math.round(left), right_seconds: Math.round(right), active_side: null, active_since: null };
+}
+
 /** Which sides were nursed, in order, with their durations. */
 export function nursingSides(data: any): { side: Side; seconds: number }[] {
   const out: { side: Side; seconds: number }[] = [];
