@@ -137,7 +137,8 @@ export function eventsForCompleteDays(events: StatEvent[], now: Date, days: numb
 /** Rich nursing/sleep/diaper detail over any event set (a day or a range). */
 export function detailStats(events: StatEvent[]): DetailStats {
   const nursing = events.filter((e) => e.type === "feed_breast");
-  const nursingDurs = nursing.map(durationSeconds).filter((s) => s > 0);
+  // nursing "duration" is active time (L+R), not the start→end span
+  const nursingDurs = nursing.map((e) => (e.data?.left_seconds ?? 0) + (e.data?.right_seconds ?? 0)).filter((s) => s > 0);
   const lefts = nursing.map((e) => e.data?.left_seconds ?? 0);
   const rights = nursing.map((e) => e.data?.right_seconds ?? 0);
 

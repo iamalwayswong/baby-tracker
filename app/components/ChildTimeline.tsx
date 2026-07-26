@@ -413,13 +413,23 @@ function MoreTrackers({ onPick }: { onPick: (t: EventType) => void }) {
 function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
   const def = EVENT_DEFS[e.type];
   const isDuration = def.kind === "duration";
-  const duration =
-    isDuration && e.end_time ? humanDuration((+new Date(e.end_time) - +new Date(e.start_time)) / 1000) : null;
-  // start–end range for durations; single time for point events
-  const timeText = isDuration
+  const isNursing = e.type === "feed_breast";
+  // For nursing, the duration is ACTIVE time (L+R), not the start→end span
+  // (which includes pauses). Span is kept but secondary (shown only via the
+  // start time / edit sheet).
+  const activeSeconds = isNursing ? (e.data?.left_seconds ?? 0) + (e.data?.right_seconds ?? 0) : 0;
+  const duration = isNursing
+    ? activeSeconds
+      ? humanDuration(activeSeconds)
+      : null
+    : isDuration && e.end_time
+    ? humanDuration((+new Date(e.end_time) - +new Date(e.start_time)) / 1000)
+    : null;
+  const timeText = isNursing
+    ? clockTime(e.start_time) // active time is the duration; span is secondary
+    : isDuration
     ? `${clockTime(e.start_time)} – ${e.end_time ? clockTime(e.end_time) : "now"}`
     : clockTime(e.start_time);
-  const isNursing = e.type === "feed_breast";
   const comment = [summarizeEvent(e.type, e.data), e.note].filter(Boolean).join(" · ");
   return (
     <button
