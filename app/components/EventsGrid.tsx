@@ -69,6 +69,17 @@ export default function EventsGrid({
     [rows, deletedIds]
   );
 
+  // Display rows sorted by start time (newest first), recomputed live as rows
+  // are added/duplicated/edited. Rows are keyed, so an edited field keeps focus
+  // even when its row moves. Stable sort keeps equal-time rows in insert order.
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const ta = a.start ? new Date(a.start).getTime() : Infinity;
+      const tb = b.start ? new Date(b.start).getTime() : Infinity;
+      return tb - ta;
+    });
+  }, [rows]);
+
   function patchRow(key: string, patch: Partial<Row>) {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch, dirty: true } : r)));
     setSavedAt(null);
@@ -236,7 +247,7 @@ export default function EventsGrid({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {sortedRows.map((r) => {
               const def = EVENT_DEFS[r.type];
               const fields = DETAIL_FIELDS[r.type] ?? [];
               const rowBg = r.isNew ? "bg-emerald-50" : r.dirty ? "bg-amber-50" : "";
