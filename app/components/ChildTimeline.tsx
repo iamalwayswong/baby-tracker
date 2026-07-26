@@ -324,6 +324,7 @@ export default function ChildTimeline({
       {sheet?.kind === "edit" && (
         <EditEventSheet
           event={sheet.event}
+          isMostRecent={sheet.event.id === events[0]?.id}
           onClose={() => setSheet(null)}
           onSaved={(updated) => {
             upsert(updated);

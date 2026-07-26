@@ -7,8 +7,8 @@ import { isEventType } from "@/lib/events";
 import { broadcast } from "@/lib/realtime";
 
 async function loadOwned(userId: string, eventId: string) {
-  const ev = await queryOne<{ id: string; child_id: string }>(
-    "select id, child_id from events where id = $1",
+  const ev = await queryOne<{ id: string; child_id: string; start_time: string }>(
+    "select id, child_id, start_time from events where id = $1",
     [eventId]
   );
   if (!ev) return null;
@@ -35,6 +35,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!parsed.success) return error("Invalid update");
   const { type, start_time, end_time, data, note } = parsed.data;
   if (type && !isEventType(type)) return error("Unknown event type");
+
+  // end must not be before start (compare against the incoming start, or the
+  // stored one when start isn't being changed)
+  if (end_time) {
+    const effectiveStart = start_time ?? ev.start_time;
+    if (new Date(end_time) < new Date(effectiveStart)) return error("End time can't be before the start time");
+  }
 
   const rows = await query(
     `update events set

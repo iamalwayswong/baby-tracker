@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/client";
-import { EVENT_DEFS, EventType } from "@/lib/events";
+import { EVENT_DEFS, EventType, Side } from "@/lib/events";
 import { toLocalInput, fromLocalInput } from "@/lib/format";
 import { detailFieldsFor, fieldDisplayValue, applyField } from "@/lib/detailFields";
 import { Button, ChoiceChips, ConfirmModal, Field, Sheet, TextInput } from "@/app/components/ui";
@@ -22,11 +22,13 @@ type EventRow = {
 // deleting both go through custom in-app confirm modals.
 export default function EditEventSheet({
   event,
+  isMostRecent = false,
   onSaved,
   onDeleted,
   onClose,
 }: {
   event: EventRow;
+  isMostRecent?: boolean;
   onSaved: (e: EventRow) => void;
   onDeleted: (id: string) => void;
   onClose: () => void;
@@ -62,6 +64,11 @@ export default function EditEventSheet({
   }
 
   async function save() {
+    // end must not be before start
+    if (def.kind === "duration" && end && fromLocalInput(end) < fromLocalInput(start)) {
+      setErr("End time can't be before the start time.");
+      return;
+    }
     setSaving(true);
     setErr(null);
     try {
@@ -91,6 +98,31 @@ export default function EditEventSheet({
       setErr(e.message);
       setDeleting(false);
       setConfirm(null);
+    }
+  }
+
+  // Reopen a completed duration event so its timer continues (e.g. baby was
+  // still sleeping). Clears end_time; for nursing, resume the last side.
+  const canResume = def.kind === "duration" && !!event.end_time && isMostRecent;
+  async function resume() {
+    setSaving(true);
+    setErr(null);
+    try {
+      const body: any = { end_time: null };
+      if (event.type === "feed_breast") {
+        const side = (data.last_side as Side) || "left";
+        body.data = {
+          left_seconds: data.left_seconds ?? 0,
+          right_seconds: data.right_seconds ?? 0,
+          active_side: side,
+          active_since: new Date().toISOString(),
+        };
+      }
+      const { event: updated } = await api<{ event: EventRow }>(`/api/events/${event.id}`, { method: "PATCH", json: body });
+      onSaved({ ...updated, created_by_name: event.created_by_name });
+    } catch (e: any) {
+      setErr(e.message);
+      setSaving(false);
     }
   }
 
@@ -134,6 +166,11 @@ export default function EditEventSheet({
           <Button fullWidth loading={saving} disabled={!dirty} onClick={save}>
             Save changes
           </Button>
+          {canResume && (
+            <Button fullWidth variant="secondary" onClick={resume}>
+              ▶ Resume timer
+            </Button>
+          )}
           <Button fullWidth variant="destructive" onClick={() => setConfirm("delete")}>
             Delete entry
           </Button>
