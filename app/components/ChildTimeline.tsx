@@ -425,9 +425,10 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
     : isDuration && e.end_time
     ? humanDuration((+new Date(e.end_time) - +new Date(e.start_time)) / 1000)
     : null;
-  const timeText = isNursing
-    ? clockTime(e.start_time) // active time is the duration; span is secondary
-    : isDuration
+  // Range (start–end) for all duration events, incl. nursing — this shows the
+  // clock window ("when"). For nursing the DURATION number is active time
+  // (L+R), which reads distinctly as "how long actively".
+  const timeText = isDuration
     ? `${clockTime(e.start_time)} – ${e.end_time ? clockTime(e.end_time) : "now"}`
     : clockTime(e.start_time);
   const comment = [summarizeEvent(e.type, e.data), e.note].filter(Boolean).join(" · ");
