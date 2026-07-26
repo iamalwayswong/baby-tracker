@@ -90,6 +90,29 @@ export default function EventsGrid({
     setSavedAt(null);
   }
 
+  // Clone a row (type, times, details, note) as a new unsaved row right below —
+  // fast way to add many similar entries; just tweak what differs.
+  function duplicateRow(key: string) {
+    setRows((rs) => {
+      const idx = rs.findIndex((r) => r.key === key);
+      if (idx < 0) return rs;
+      const src = rs[idx];
+      const copy: Row = {
+        ...src,
+        key: `tmp-${tmpCounter++}`,
+        id: null,
+        data: { ...src.data },
+        loggedBy: "",
+        dirty: false,
+        isNew: true,
+      };
+      const next = [...rs];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+    setSavedAt(null);
+  }
+
   function removeRow(key: string) {
     setRows((rs) => {
       const row = rs.find((r) => r.key === key);
@@ -209,7 +232,7 @@ export default function EventsGrid({
               <th className="px-2 py-2">Details</th>
               <th className="px-2 py-2">Note</th>
               <th className="px-2 py-2">By</th>
-              <th className="w-8 px-2 py-2"></th>
+              <th className="w-14 px-2 py-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -297,9 +320,18 @@ export default function EventsGrid({
                   </td>
                   <td className="whitespace-nowrap px-2 py-1.5 text-xs text-gray-400">{r.loggedBy || (r.isNew ? "you (new)" : "")}</td>
                   <td className="px-2 py-1.5">
-                    <button onClick={() => removeRow(r.key)} className="tap text-gray-300 active:text-red-500" title="delete">
-                      ✕
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => duplicateRow(r.key)}
+                        className="tap text-gray-400 active:text-brand-600"
+                        title="Duplicate row"
+                      >
+                        ⧉
+                      </button>
+                      <button onClick={() => removeRow(r.key)} className="tap text-gray-300 active:text-red-500" title="Delete row">
+                        ✕
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
