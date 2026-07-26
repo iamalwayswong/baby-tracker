@@ -54,6 +54,13 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           />
         </Field>
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {!isSignup && (
+          <div className="text-right">
+            <Link href="/forgot" className="text-sm font-medium text-brand-600">
+              Forgot password?
+            </Link>
+          </div>
+        )}
         <Button type="submit" fullWidth loading={busy}>
           {isSignup ? "Create account" : "Log in"}
         </Button>

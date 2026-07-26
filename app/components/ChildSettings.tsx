@@ -6,7 +6,7 @@ import { api } from "@/lib/client";
 import { Button, Card, ChoiceChips, ConfirmModal, Field, TextInput } from "@/app/components/ui";
 
 type Caregiver = { id: string; name: string; email: string; role: string };
-type Invite = { id: string; email: string; expiresAt: string; url: string };
+type Invite = { id: string; email: string; expiresAt: string; url: string; emailed?: boolean };
 type Child = { id: string; name: string; birth_date: string | null; sex: string };
 
 function daysLeft(iso: string): string {
@@ -171,7 +171,12 @@ export default function ChildSettings({
             </Button>
           </form>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          <p className="mt-2 text-xs text-gray-400">We don&apos;t email it — copy the link and send it to them.</p>
+          {invites.length > 0 &&
+            (invites[0]?.emailed ? (
+              <p className="mt-2 text-xs text-emerald-600">✓ Emailed the invite — you can also copy the link below.</p>
+            ) : (
+              <p className="mt-2 text-xs text-gray-400">Copy the link below and send it to them.</p>
+            ))}
 
           {invites.length > 0 && (
             <div className="mt-5">

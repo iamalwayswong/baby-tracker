@@ -38,6 +38,16 @@ create table if not exists invites (
   created_at timestamptz not null default now()
 );
 
+create table if not exists password_resets (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references users(id) on delete cascade,
+  token      text not null unique,
+  expires_at timestamptz not null,
+  used_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists password_resets_token_idx on password_resets (token);
+
 -- the shared timeline: nearly everything a parent logs is an event
 create table if not exists events (
   id         uuid primary key default gen_random_uuid(),

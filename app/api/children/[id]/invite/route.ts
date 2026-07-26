@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireUser, json, error } from "@/lib/api";
 import { caregiverRole } from "@/lib/auth";
+import { sendEmail, inviteEmail } from "@/lib/email";
 
 const Body = z.object({ email: z.string().email() });
 
@@ -53,5 +54,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     [params.id, user.id, email, token, expires]
   );
   const base = baseUrl(req);
-  return json({ id: rows[0].id, token, url: `${base}/invite/${token}`, email, expiresAt: rows[0].expires_at });
+  const url = `${base}/invite/${token}`;
+
+  // fetch child name for the email; best-effort send (invite stands regardless)
+  const child = await query<{ name: string }>("select name from children where id = $1", [params.id]);
+  const { sent } = await sendEmail({ to: email, ...inviteEmail(user.name, child[0]?.name ?? "their baby", url) });
+
+  return json({ id: rows[0].id, token, url, email, expiresAt: rows[0].expires_at, emailed: sent });
 }
