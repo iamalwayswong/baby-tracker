@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import { ALL_EVENT_TYPES, EVENT_DEFS, EventType } from "@/lib/events";
@@ -69,16 +69,26 @@ export default function EventsGrid({
     [rows, deletedIds]
   );
 
-  // Display rows sorted by start time (newest first), recomputed live as rows
-  // are added/duplicated/edited. Rows are keyed, so an edited field keeps focus
-  // even when its row moves. Stable sort keeps equal-time rows in insert order.
+  // Display rows sorted by start time (newest first), recomputed as rows are
+  // added/duplicated/edited — but NOT while a time field is focused, so typing
+  // "11:00" doesn't yank the row away when it momentarily reads as "1:00". The
+  // frozen order is held until blur, then it re-sorts.
+  const [editingTime, setEditingTime] = useState(false);
+  const orderRef = useRef<string[]>([]);
   const sortedRows = useMemo(() => {
-    return [...rows].sort((a, b) => {
+    if (editingTime && orderRef.current.length) {
+      const idx = new Map(orderRef.current.map((k, i) => [k, i]));
+      // keep last order; any row not in it (freshly added) floats to the top
+      return [...rows].sort((a, b) => (idx.get(a.key) ?? -1) - (idx.get(b.key) ?? -1));
+    }
+    const s = [...rows].sort((a, b) => {
       const ta = a.start ? new Date(a.start).getTime() : Infinity;
       const tb = b.start ? new Date(b.start).getTime() : Infinity;
       return tb - ta;
     });
-  }, [rows]);
+    orderRef.current = s.map((r) => r.key);
+    return s;
+  }, [rows, editingTime]);
 
   function patchRow(key: string, patch: Partial<Row>) {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch, dirty: true } : r)));
@@ -274,6 +284,8 @@ export default function EventsGrid({
                       type="datetime-local"
                       value={r.start}
                       onChange={(e) => patchRow(r.key, { start: e.target.value })}
+                      onFocus={() => setEditingTime(true)}
+                      onBlur={() => setEditingTime(false)}
                       className="rounded border border-gray-200 px-1.5 py-1"
                     />
                   </td>
@@ -283,6 +295,8 @@ export default function EventsGrid({
                         type="datetime-local"
                         value={r.end}
                         onChange={(e) => patchRow(r.key, { end: e.target.value })}
+                        onFocus={() => setEditingTime(true)}
+                        onBlur={() => setEditingTime(false)}
                         className="rounded border border-gray-200 px-1.5 py-1"
                       />
                     ) : (
