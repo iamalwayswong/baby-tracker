@@ -1,9 +1,9 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import { ALL_EVENT_TYPES, EVENT_DEFS, EventType } from "@/lib/events";
-import { toLocalInput, fromLocalInput } from "@/lib/format";
+import { toLocalInput, fromLocalInput, dayLabel } from "@/lib/format";
 import { FieldSpec, DETAIL_FIELDS, fieldDisplayValue, applyField } from "@/lib/detailFields";
 import { Button } from "@/app/components/ui";
 
@@ -259,12 +259,27 @@ export default function EventsGrid({
             </tr>
           </thead>
           <tbody>
-            {sortedRows.map((r) => {
+            {sortedRows.map((r, i) => {
               const def = EVENT_DEFS[r.type];
               const fields = DETAIL_FIELDS[r.type] ?? [];
               const rowBg = r.isNew ? "bg-emerald-50" : r.dirty ? "bg-amber-50" : "";
+              // day separator when the day changes from the previous row
+              const day = r.start ? dayLabel(r.start) : "No date";
+              const prevDay = i > 0 && sortedRows[i - 1].start ? dayLabel(sortedRows[i - 1].start) : null;
+              const showDay = day !== prevDay;
               return (
-                <tr key={r.key} className={`border-b border-gray-100 ${rowBg}`}>
+                <Fragment key={r.key}>
+                  {showDay && (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="bg-gray-100 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500"
+                      >
+                        {day}
+                      </td>
+                    </tr>
+                  )}
+                  <tr className={`border-b border-gray-100 ${rowBg}`}>
                   <td className="px-2 py-1.5">
                     <input type="checkbox" checked={selected.has(r.key)} onChange={() => toggleSelect(r.key)} />
                   </td>
@@ -360,7 +375,8 @@ export default function EventsGrid({
                       </button>
                     </div>
                   </td>
-                </tr>
+                  </tr>
+                </Fragment>
               );
             })}
           </tbody>
