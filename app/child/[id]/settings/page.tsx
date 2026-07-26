@@ -10,8 +10,11 @@ export default async function SettingsPage({ params }: { params: { id: string } 
   const role = await caregiverRole(user.id, params.id);
   if (!role) notFound();
 
+  // format birth_date to a plain YYYY-MM-DD string (the pg driver returns
+  // `date` columns as JS Date objects, which break string ops on the client
+  // and can drift across timezones).
   const child = await queryOne<{ id: string; name: string; birth_date: string | null; sex: string }>(
-    "select id, name, birth_date, sex from children where id = $1",
+    "select id, name, to_char(birth_date, 'YYYY-MM-DD') as birth_date, sex from children where id = $1",
     [params.id]
   );
   if (!child) notFound();
