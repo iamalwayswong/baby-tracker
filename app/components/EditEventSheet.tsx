@@ -98,14 +98,10 @@ export default function EditEventSheet({
     <>
       <Sheet onClose={requestClose} title={`Edit ${def.emoji} ${def.label}`}>
         <div className="space-y-3">
-          <Field label="Start">
-            <TextInput type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
-          </Field>
+          <TimeField label="Start" value={start} onChange={setStart} />
 
           {def.kind === "duration" && (
-            <Field label={`End${end ? "" : " (in progress)"}`}>
-              <TextInput type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </Field>
+            <TimeField label={`End${end ? "" : " (in progress)"}`} value={end} onChange={setEnd} allowEmpty />
           )}
 
           {fields.map((f) => {
@@ -167,5 +163,66 @@ export default function EditEventSheet({
         />
       )}
     </>
+  );
+}
+
+// Time is the primary control (you usually just nudge it); the date is a
+// secondary action tucked behind "change date", with the current day shown
+// for context. `value` is a datetime-local string ("YYYY-MM-DDTHH:mm").
+function todayLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function TimeField({
+  label,
+  value,
+  onChange,
+  allowEmpty,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  allowEmpty?: boolean;
+}) {
+  const [showDate, setShowDate] = useState(false);
+  const hasValue = !!value;
+  const datePart = hasValue ? value.slice(0, 10) : todayLocal();
+  const timePart = hasValue ? value.slice(11, 16) : "";
+  const humanDate = hasValue
+    ? new Date(value).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
+    : "no date";
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <button
+          type="button"
+          onClick={() => setShowDate((s) => !s)}
+          className="tap text-xs font-medium text-brand-600 active:text-brand-800"
+        >
+          {humanDate} · {showDate ? "done" : "change date"}
+        </button>
+      </div>
+      <TextInput
+        type="time"
+        value={timePart}
+        onChange={(e) => {
+          const t = e.target.value;
+          if (!t && allowEmpty) return onChange("");
+          onChange(`${datePart}T${t}`);
+        }}
+      />
+      {showDate && (
+        <TextInput
+          type="date"
+          className="mt-2"
+          value={datePart}
+          onChange={(e) => onChange(`${e.target.value}T${timePart || "00:00"}`)}
+        />
+      )}
+    </div>
   );
 }
