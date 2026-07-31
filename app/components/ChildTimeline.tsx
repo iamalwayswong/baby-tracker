@@ -53,6 +53,14 @@ export default function ChildTimeline({
   const [events, setEvents] = useState<EventRow[]>(initialEvents);
   const [sheet, setSheet] = useState<Sheet>(openNursing ? { kind: "nursing" } : null);
   const [now, setNow] = useState(() => Date.now());
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const toggleDay = (day: string) =>
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
 
   // tick every second so live timers update
   useEffect(() => {
@@ -295,17 +303,33 @@ export default function ChildTimeline({
             No entries yet. Tap a button above to log the first one.
           </p>
         )}
-        {grouped.map(([day, items]) => (
-          <div key={day} className="mb-6">
-            <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">{day}</h3>
-            <DaySummary items={items} />
-            <div className="space-y-2">
-              {items.map((e) => (
-                <TimelineItem key={e.id} e={e} onClick={() => setSheet({ kind: "edit", event: e })} />
-              ))}
+        {grouped.map(([day, items]) => {
+          const collapsed = collapsedDays.has(day);
+          return (
+            <div key={day} className="mb-6">
+              <button
+                onClick={() => toggleDay(day)}
+                className="tap mb-2 mt-4 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400"
+              >
+                <span className="flex items-center gap-1">
+                  {day}
+                  {collapsed && <span className="font-normal normal-case tracking-normal text-gray-300">· {items.length}</span>}
+                </span>
+                <span className={`transition-transform ${collapsed ? "-rotate-90" : ""}`}>▾</span>
+              </button>
+              {!collapsed && (
+                <>
+                  <DaySummary items={items} />
+                  <div className="space-y-2">
+                    {items.map((e) => (
+                      <TimelineItem key={e.id} e={e} onClick={() => setSheet({ kind: "edit", event: e })} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* sheets */}
@@ -546,7 +570,7 @@ function DaySummary({ items }: { items: EventRow[] }) {
   }
 
   return (
-    <div className="mb-3">
+    <div className="mb-3 pl-3">
       <button
         onClick={() => setOpen((o) => !o)}
         className="tap flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400"

@@ -104,8 +104,10 @@ export function toggleMulti(data: any, f: Extract<FieldSpec, { kind: "multi" }>,
     // Shortcut: if everything's already on, clear all; otherwise select all.
     const allOn = real.every((o) => selected.has(o.value));
     real.forEach((o) => (allOn ? selected.delete(o.value) : selected.add(o.value)));
+  } else if (selected.has(value)) {
+    selected.delete(value);
   } else {
-    selected.has(value) ? selected.delete(value) : selected.add(value);
+    selected.add(value);
   }
   const next = { ...data };
   delete next.kind; // materialized into booleans below; drop the legacy field
