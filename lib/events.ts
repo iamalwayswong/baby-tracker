@@ -60,6 +60,15 @@ export const SIDE: Record<Side, { label: string; short: string; solid: string; s
   right: { label: "Right", short: "R", solid: "bg-pink-500", soft: "bg-pink-100 text-pink-700" },
 };
 
+export type DiaperKind = "pee" | "poop";
+
+// Per-contents identity for diapers — mirrors SIDE. Pee = yellow, Poop = brown,
+// used for the colored pill badges on the timeline (like the L/R nursing pills).
+export const DIAPER: Record<DiaperKind, { label: string; soft: string }> = {
+  pee: { label: "Pee", soft: "bg-yellow-200 text-yellow-800" },
+  poop: { label: "Poop", soft: "bg-amber-800 text-white" },
+};
+
 /**
  * Nursing duration for display — always rounded to the nearest minute (exact
  * seconds are still stored in the DB). Sub-30s rounds to "<1m" rather than
@@ -98,6 +107,20 @@ export function settleNursing(data: any, nowMs: number) {
   return { left_seconds: Math.round(left), right_seconds: Math.round(right), active_side: null, active_since: null };
 }
 
+// ——— Diaper contents ———
+//
+// A diaper records which of pee / poop it contained — both can be true (like a
+// nursing session can have both sides). Stored as `data.pee` / `data.poop`
+// booleans. Legacy events used a single `data.kind` of "pee" | "poop" | "both";
+// `diaperKinds` reads either shape so old data keeps rendering.
+export function diaperKinds(data: any): { pee: boolean; poop: boolean } {
+  if (data?.pee !== undefined || data?.poop !== undefined) {
+    return { pee: !!data.pee, poop: !!data.poop };
+  }
+  const k = data?.kind;
+  return { pee: k === "pee" || k === "both", poop: k === "poop" || k === "both" };
+}
+
 /** Which sides were nursed, in order, with their durations. */
 export function nursingSides(data: any): { side: Side; seconds: number }[] {
   const out: { side: Side; seconds: number }[] = [];
@@ -124,8 +147,13 @@ export function summarizeEvent(type: EventType, data: any, _startTime?: string, 
       const total = (data?.left_ml ?? 0) + (data?.right_ml ?? 0);
       return total ? `${total} ml pumped` : "pump";
     }
-    case "diaper":
-      return data?.kind ?? "diaper";
+    case "diaper": {
+      const { pee, poop } = diaperKinds(data);
+      if (pee && poop) return "pee + poop";
+      if (pee) return "pee";
+      if (poop) return "poop";
+      return "diaper";
+    }
     case "growth": {
       const bits = [];
       if (data?.weight_g) bits.push(`${(data.weight_g / 1000).toFixed(2)} kg`);

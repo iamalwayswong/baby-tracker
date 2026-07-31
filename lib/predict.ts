@@ -51,6 +51,9 @@ const avg = (n: number[]) => n.reduce((a, b) => a + b, 0) / n.length;
 export type NapPrediction =
   | { state: "sleeping" }
   | { state: "insufficient"; needsBirthday: boolean }
+  // The anchor (last logged wake) is too old for the prediction to mean
+  // anything — e.g. no sleep has been logged in a while. Hide the banner.
+  | { state: "stale" }
   | {
       state: "predict";
       nextWindowMs: number; // predicted start of the next nap window
@@ -82,9 +85,19 @@ export function predictNap(events: PredictEvent[], birthDate: string | null, now
     ageWW != null && personalWW != null ? (ageWW + personalWW) / 2 : (personalWW ?? ageWW)!;
 
   const lastWokeMs = Math.max(...completed.map((s) => +new Date(s.end_time!)));
+  const nextWindowMs = lastWokeMs + wakeWindowMin * 60000;
+
+  // A prediction is only meaningful near its window. Once we're overdue by more
+  // than a full wake window (i.e. the last wake is 2+ windows old), the anchor
+  // is stale — likely no recent sleep was logged — so drop it rather than show
+  // an ever-growing "window open · 111h ago".
+  if (+now - nextWindowMs > wakeWindowMin * 60000) {
+    return { state: "stale" };
+  }
+
   return {
     state: "predict",
-    nextWindowMs: lastWokeMs + wakeWindowMin * 60000,
+    nextWindowMs,
     wakeWindowMin: Math.round(wakeWindowMin),
     personalized: personalWW != null,
     lastWokeMs,

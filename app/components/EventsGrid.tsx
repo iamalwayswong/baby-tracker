@@ -4,8 +4,8 @@ import Link from "next/link";
 import { api } from "@/lib/client";
 import { ALL_EVENT_TYPES, EVENT_DEFS, EventType } from "@/lib/events";
 import { toLocalInput, fromLocalInput, dayLabel } from "@/lib/format";
-import { FieldSpec, DETAIL_FIELDS, fieldDisplayValue, applyField } from "@/lib/detailFields";
-import { Button } from "@/app/components/ui";
+import { FieldSpec, DETAIL_FIELDS, fieldDisplayValue, applyField, multiSelected, toggleMulti } from "@/lib/detailFields";
+import { Button, ToggleChips } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -100,6 +100,13 @@ export default function EventsGrid({
   function setDetail(key: string, f: FieldSpec, raw: string) {
     setRows((rs) =>
       rs.map((r) => (r.key === key ? { ...r, data: applyField(r.data, f, raw), dirty: true } : r))
+    );
+    setSavedAt(null);
+  }
+
+  function toggleDetail(key: string, f: Extract<FieldSpec, { kind: "multi" }>, value: string) {
+    setRows((rs) =>
+      rs.map((r) => (r.key === key ? { ...r, data: toggleMulti(r.data, f, value), dirty: true } : r))
     );
     setSavedAt(null);
   }
@@ -326,7 +333,14 @@ export default function EventsGrid({
                       {fields.map((f) => (
                         <span key={f.key} className="inline-flex items-center gap-0.5">
                           {f.label && <span className="text-xs text-gray-400">{f.label}</span>}
-                          {f.kind === "select" ? (
+                          {f.kind === "multi" ? (
+                            <ToggleChips
+                              options={f.options}
+                              values={multiSelected(r.data, f)}
+                              onToggle={(v) => toggleDetail(r.key, f, v)}
+                              className="w-56"
+                            />
+                          ) : f.kind === "select" ? (
                             <select
                               value={String(fieldDisplayValue(r.data, f))}
                               onChange={(e) => setDetail(r.key, f, e.target.value)}

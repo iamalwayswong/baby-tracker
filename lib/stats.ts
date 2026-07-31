@@ -4,7 +4,7 @@
 // Key rule: averages are computed over COMPLETE days only — the current
 // (partial) day is reported separately as "today so far" and never averaged in,
 // so a half-finished day can't drag the numbers down.
-import { EventType } from "./events";
+import { EventType, diaperKinds } from "./events";
 
 export type StatEvent = {
   type: EventType;
@@ -209,8 +209,10 @@ export function detailStats(events: StatEvent[]): DetailStats {
 
   const diaper = { pee: 0, poop: 0, both: 0, total: 0 };
   for (const e of events.filter((e) => e.type === "diaper")) {
-    const k = e.data?.kind as "pee" | "poop" | "both" | undefined;
-    if (k && k in diaper) (diaper as any)[k]++;
+    const { pee, poop } = diaperKinds(e.data);
+    if (pee && poop) diaper.both++;
+    else if (pee) diaper.pee++;
+    else if (poop) diaper.poop++;
     diaper.total++;
   }
 

@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { api } from "@/lib/client";
 import { EVENT_DEFS, EventType, Side } from "@/lib/events";
 import { toLocalInput, fromLocalInput } from "@/lib/format";
-import { detailFieldsFor, fieldDisplayValue, applyField } from "@/lib/detailFields";
-import { Button, ChoiceChips, ConfirmModal, Field, Sheet, TextInput } from "@/app/components/ui";
+import { detailFieldsFor, fieldDisplayValue, applyField, multiSelected, toggleMulti } from "@/lib/detailFields";
+import { Button, ChoiceChips, ConfirmModal, Field, Sheet, TextInput, ToggleChips } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -145,6 +145,17 @@ export default function EditEventSheet({
                     options={f.options}
                     value={String(fieldDisplayValue(data, f))}
                     onChange={(v) => setData(applyField(data, f, v))}
+                  />
+                </Field>
+              );
+            }
+            if (f.kind === "multi") {
+              return (
+                <Field key={f.key} label={label}>
+                  <ToggleChips
+                    options={f.options}
+                    values={multiSelected(data, f)}
+                    onToggle={(v) => setData(toggleMulti(data, f, v))}
                   />
                 </Field>
               );

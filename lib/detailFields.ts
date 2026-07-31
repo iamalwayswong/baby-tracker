@@ -1,11 +1,16 @@
 // Type-specific detail fields for an event's `data`, shared by the events grid
 // and the timeline edit sheet. Pure (no React) so both can import it.
-import { EventType } from "./events";
+import { EventType, diaperKinds } from "./events";
 
 export type FieldSpec =
   | { key: string; label: string; kind: "number"; unit?: string; scale?: number }
   | { key: string; label: string; kind: "text" }
-  | { key: string; label: string; kind: "select"; options: string[] };
+  | { key: string; label: string; kind: "select"; options: string[] }
+  // Multi-select toggle pills. Each option's value is stored as a boolean on
+  // `data` (e.g. data.pee / data.poop), so more than one can be on at once.
+  // An `all: true` option is a shortcut (e.g. "Both") — it's never stored; it
+  // lights up when every real option is on and toggles them all at once.
+  | { key: string; label: string; kind: "multi"; options: { value: string; label: string; all?: boolean }[] };
 
 export const DETAIL_FIELDS: Partial<Record<EventType, FieldSpec[]>> = {
   feed_breast: [
@@ -21,7 +26,18 @@ export const DETAIL_FIELDS: Partial<Record<EventType, FieldSpec[]>> = {
     { key: "left_ml", label: "L", kind: "number", unit: "ml" },
     { key: "right_ml", label: "R", kind: "number", unit: "ml" },
   ],
-  diaper: [{ key: "kind", label: "", kind: "select", options: ["poop", "pee", "both"] }],
+  diaper: [
+    {
+      key: "diaper",
+      label: "",
+      kind: "multi",
+      options: [
+        { value: "pee", label: "Pee" },
+        { value: "poop", label: "Poop" },
+        { value: "both", label: "Both", all: true },
+      ],
+    },
+  ],
   growth: [
     { key: "weight_g", label: "wt", kind: "number", unit: "g" },
     { key: "height_cm", label: "ht", kind: "number", unit: "cm" },
@@ -57,5 +73,42 @@ export function applyField(data: any, f: FieldSpec, raw: string): any {
   } else {
     next[f.key] = raw || undefined;
   }
+  return next;
+}
+
+// Whether an individual option is on. Diaper is the only multi field, so we
+// route pee/poop through diaperKinds to also honor legacy `kind`-shaped events.
+function optionOn(data: any, value: string): boolean {
+  const { pee, poop } = diaperKinds(data);
+  if (value === "pee") return pee;
+  if (value === "poop") return poop;
+  return !!data?.[value];
+}
+
+/** Selected option values for a multi field, including any lit `all` shortcut. */
+export function multiSelected(data: any, f: Extract<FieldSpec, { kind: "multi" }>): string[] {
+  const real = f.options.filter((o) => !o.all);
+  const active = real.filter((o) => optionOn(data, o.value)).map((o) => o.value);
+  const allOn = real.length > 0 && active.length === real.length;
+  // An `all` shortcut (e.g. "Both") lights up only when every real option is on.
+  const shortcuts = allOn ? f.options.filter((o) => o.all).map((o) => o.value) : [];
+  return [...active, ...shortcuts];
+}
+
+/** Toggle one option of a multi field on/off, migrating off any legacy `kind`. */
+export function toggleMulti(data: any, f: Extract<FieldSpec, { kind: "multi" }>, value: string): any {
+  const real = f.options.filter((o) => !o.all);
+  const selected = new Set(real.filter((o) => optionOn(data, o.value)).map((o) => o.value));
+  const opt = f.options.find((o) => o.value === value);
+  if (opt?.all) {
+    // Shortcut: if everything's already on, clear all; otherwise select all.
+    const allOn = real.every((o) => selected.has(o.value));
+    real.forEach((o) => (allOn ? selected.delete(o.value) : selected.add(o.value)));
+  } else {
+    selected.has(value) ? selected.delete(value) : selected.add(value);
+  }
+  const next = { ...data };
+  delete next.kind; // materialized into booleans below; drop the legacy field
+  for (const o of real) next[o.value] = selected.has(o.value) ? true : undefined;
   return next;
 }

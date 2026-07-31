@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { EVENT_DEFS, EventType } from "@/lib/events";
-import { Button, ChoiceChips, Sheet, Stepper, TextInput } from "@/app/components/ui";
+import { DETAIL_FIELDS, FieldSpec, multiSelected, toggleMulti } from "@/lib/detailFields";
+import { Button, ChoiceChips, Sheet, Stepper, TextInput, ToggleChips } from "@/app/components/ui";
 
 // Bottom sheet for point-in-time events. Each type renders quick presets so
 // logging is a couple of taps, with sensible defaults pre-selected.
@@ -48,18 +49,16 @@ function Body({ type, data, setData }: { type: EventType; data: any; setData: (d
   const set = (patch: any) => setData({ ...data, ...patch });
 
   switch (type) {
-    case "diaper":
+    case "diaper": {
+      const f = DETAIL_FIELDS.diaper![0] as Extract<FieldSpec, { kind: "multi" }>;
       return (
-        <ChoiceChips
-          options={[
-            { value: "poop", label: "Poop" },
-            { value: "pee", label: "Pee" },
-            { value: "both", label: "Both" },
-          ]}
-          value={data.kind}
-          onChange={(v) => set({ kind: v })}
+        <ToggleChips
+          options={f.options}
+          values={multiSelected(data, f)}
+          onToggle={(v) => setData(toggleMulti(data, f, v))}
         />
       );
+    }
     case "feed_bottle":
       return (
         <div className="space-y-3">

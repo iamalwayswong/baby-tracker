@@ -10,6 +10,9 @@ import {
   summarizeEvent,
   Side,
   SIDE,
+  DIAPER,
+  DiaperKind,
+  diaperKinds,
   nursingSides,
   sideDuration,
   settleNursing,
@@ -295,6 +298,7 @@ export default function ChildTimeline({
         {grouped.map(([day, items]) => (
           <div key={day} className="mb-6">
             <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">{day}</h3>
+            <DaySummary items={items} />
             <div className="space-y-2">
               {items.map((e) => (
                 <TimelineItem key={e.id} e={e} onClick={() => setSheet({ kind: "edit", event: e })} />
@@ -419,6 +423,11 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
   const def = EVENT_DEFS[e.type];
   const isDuration = def.kind === "duration";
   const isNursing = e.type === "feed_breast";
+  const isDiaper = e.type === "diaper";
+  const diaper = isDiaper ? diaperKinds(e.data) : null;
+  const diaperKindsOn = diaper
+    ? (["pee", "poop"] as DiaperKind[]).filter((k) => diaper[k])
+    : [];
   // For nursing, the duration is ACTIVE time (L+R), not the start→end span
   // (which includes pauses). Span is kept but secondary (shown only via the
   // start time / edit sheet).
@@ -462,11 +471,100 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
             ))}
             {e.note && <span className="truncate text-xs text-gray-400">{e.note}</span>}
           </div>
+        ) : isDiaper && diaperKindsOn.length ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {diaperKindsOn.map((k) => (
+              <span key={k} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${DIAPER[k].soft}`}>
+                {DIAPER[k].label}
+              </span>
+            ))}
+            {e.note && <span className="truncate text-xs text-gray-400">{e.note}</span>}
+          </div>
         ) : (
           comment && <p className="mt-0.5 truncate text-xs text-gray-400">{comment}</p>
         )}
       </div>
     </button>
+  );
+}
+
+// Roll up a day's events into the counts/durations shown in the day header.
+function daySummary(items: EventRow[]) {
+  let poops = 0, pees = 0, diapers = 0;
+  let nursingCount = 0, nursingSec = 0, leftSec = 0, rightSec = 0, leftCount = 0, rightCount = 0;
+  let naps = 0, completedNaps = 0, sleepSec = 0;
+  for (const e of items) {
+    if (e.type === "diaper") {
+      diapers++;
+      const { pee, poop } = diaperKinds(e.data);
+      if (pee) pees++;
+      if (poop) poops++;
+    } else if (e.type === "feed_breast") {
+      nursingCount++;
+      const l = e.data?.left_seconds ?? 0;
+      const r = e.data?.right_seconds ?? 0;
+      nursingSec += l + r;
+      leftSec += l;
+      rightSec += r;
+      if (l) leftCount++;
+      if (r) rightCount++;
+    } else if (e.type === "sleep") {
+      naps++;
+      if (e.end_time) {
+        completedNaps++;
+        sleepSec += (+new Date(e.end_time) - +new Date(e.start_time)) / 1000;
+      }
+    }
+  }
+  return { poops, pees, diapers, nursingCount, nursingSec, leftSec, rightSec, leftCount, rightCount, naps, completedNaps, sleepSec };
+}
+
+function DaySummary({ items }: { items: EventRow[] }) {
+  const [open, setOpen] = useState(false);
+  const s = daySummary(items);
+  if (!s.diapers && !s.nursingCount && !s.naps) return null;
+
+  const dur = (sec: number) => (sec ? humanDuration(sec) : "—");
+  const avg = (total: number, n: number) => (n ? dur(total / n) : "—");
+  const rows: [string, string][] = [];
+  if (s.diapers) {
+    rows.push(["Diaper changes", String(s.diapers)]);
+    rows.push(["Poops", String(s.poops)]);
+    rows.push(["Pees", String(s.pees)]);
+  }
+  if (s.nursingCount) {
+    rows.push(["Nursing", String(s.nursingCount)]);
+    rows.push(["Time nursing", dur(s.nursingSec)]);
+    rows.push(["Avg nursing", avg(s.nursingSec, s.nursingCount)]);
+    rows.push(["Left (total · avg)", `${dur(s.leftSec)} · ${avg(s.leftSec, s.leftCount)}`]);
+    rows.push(["Right (total · avg)", `${dur(s.rightSec)} · ${avg(s.rightSec, s.rightCount)}`]);
+  }
+  if (s.naps) {
+    rows.push(["Naps", String(s.naps)]);
+    rows.push(["Time sleeping", dur(s.sleepSec)]);
+    rows.push(["Avg sleep", avg(s.sleepSec, s.completedNaps)]);
+  }
+
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="tap flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400"
+      >
+        Stats
+        <span className={`transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+      </button>
+      {open && (
+        <dl className="mt-2 space-y-1 rounded-xl bg-gray-50 px-3 py-2">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex justify-between text-xs">
+              <dt className="text-gray-500">{label}</dt>
+              <dd className="font-medium tabular-nums text-gray-800">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
   );
 }
 
