@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import {
@@ -61,6 +61,9 @@ export default function ChildTimeline({
   // "Load older" fetches the next page back from the oldest loaded event.
   const [hasMore, setHasMore] = useState(initialEvents.length >= PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pull, setPull] = useState(0); // pull-to-refresh drag distance (px)
+  const pullStart = useRef<number | null>(null);
   const toggleDay = (day: string) =>
     setCollapsedDays((prev) => {
       const next = new Set(prev);
@@ -102,6 +105,34 @@ export default function ChildTimeline({
     });
   }, []);
 
+  // Re-sync the recent window from the server. Used on tab-resume / reconnect
+  // and by pull-to-refresh. The fetched page is the source of truth for its
+  // window, so creates, edits AND deletions that happened while we were away
+  // all reconcile. Older pages loaded via "Load older" (strictly older than the
+  // window) are left untouched.
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { events: latest } = await api<{ events: EventRow[] }>(
+        `/api/children/${child.id}/events?limit=${PAGE_SIZE}`
+      );
+      setEvents((list) => {
+        // A short page means the server returned every event that exists, so the
+        // whole list is authoritative. A full page only covers back to its
+        // oldest row; keep locally-loaded events older than that boundary.
+        const fullPage = latest.length >= PAGE_SIZE;
+        if (!fullPage) return latest;
+        const boundary = +new Date(latest[latest.length - 1].start_time);
+        const older = list.filter((e) => +new Date(e.start_time) < boundary);
+        return [...latest, ...older].sort((a, b) => +new Date(b.start_time) - +new Date(a.start_time));
+      });
+    } catch {
+      /* offline / transient — leave existing data in place */
+    } finally {
+      setRefreshing(false);
+    }
+  }, [child.id]);
+
   const status = useChildSocket(
     child.id,
     useCallback(
@@ -112,6 +143,30 @@ export default function ChildTimeline({
       [upsert]
     )
   );
+
+  // Auto-refresh when the app comes back to the foreground (iOS often freezes
+  // the tab + drops the socket while backgrounded, so on resume we'd otherwise
+  // show stale data until the next live event).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
+  }, [refresh]);
+
+  // Whenever the socket (re)connects after a drop, pull anything we missed.
+  const wasClosed = useRef(false);
+  useEffect(() => {
+    if (status === "open" && wasClosed.current) refresh();
+    wasClosed.current = status === "closed";
+  }, [status, refresh]);
 
   async function logEvent(type: EventType, body: Partial<EventRow> & { data?: any; note?: string }) {
     const { event } = await api<{ event: EventRow }>(`/api/children/${child.id}/events`, {
@@ -207,8 +262,43 @@ export default function ChildTimeline({
 
   const grouped = groupByDay(events);
 
+  // ——— Pull-to-refresh (only engages when scrolled to the very top) ———
+  const PULL_TRIGGER = 60;
+  function onTouchStart(e: React.TouchEvent) {
+    pullStart.current = window.scrollY <= 0 && !refreshing ? e.touches[0].clientY : null;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (pullStart.current == null) return;
+    const delta = e.touches[0].clientY - pullStart.current;
+    if (delta > 0 && window.scrollY <= 0) setPull(Math.min(delta * 0.5, 90));
+    else pullStart.current = null;
+  }
+  function onTouchEnd() {
+    if (pull > PULL_TRIGGER) refresh();
+    pullStart.current = null;
+    setPull(0);
+  }
+  const pulledEnough = pull > PULL_TRIGGER;
+
   return (
-    <div className="min-h-dvh pb-28">
+    <div
+      className="min-h-dvh overscroll-y-contain pb-28"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* pull-to-refresh indicator */}
+      {(pull > 0 || refreshing) && (
+        <div
+          className="flex items-center justify-center gap-2 overflow-hidden text-xs text-gray-400"
+          style={{ height: refreshing ? 44 : pull }}
+        >
+          <span className={refreshing ? "animate-spin" : pulledEnough ? "rotate-180" : ""}>
+            {refreshing ? "⟳" : "↓"}
+          </span>
+          {refreshing ? "Refreshing…" : pulledEnough ? "Release to refresh" : "Pull to refresh"}
+        </div>
+      )}
       {/* header */}
       <header className="sticky top-0 z-20 flex items-center justify-between bg-white/90 px-5 py-4 backdrop-blur">
         <span className="w-10" />
