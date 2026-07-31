@@ -26,7 +26,7 @@ export default async function ChildPage({
             e.created_by, u.name as created_by_name
        from events e join users u on u.id = e.created_by
       where e.child_id = $1 and e.deleted_at is null
-      order by e.start_time desc limit 100`,
+      order by e.start_time desc limit 200`,
     [params.id]
   );
 

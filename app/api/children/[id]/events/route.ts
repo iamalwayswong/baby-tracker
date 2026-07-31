@@ -6,21 +6,26 @@ import { caregiverRole } from "@/lib/auth";
 import { isEventType } from "@/lib/events";
 import { broadcast } from "@/lib/realtime";
 
-// GET /api/children/:id/events?limit=100 — recent timeline (newest first)
+// GET /api/children/:id/events?limit=100&before=<iso> — recent timeline
+// (newest first). `before` pages backwards: returns events strictly older than
+// that start_time, for the "Load older" button.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
   if (!(await caregiverRole(user.id, params.id))) return error("Not found", 404);
 
-  const limit = Math.min(Number(new URL(req.url).searchParams.get("limit") ?? 100), 500);
+  const url = new URL(req.url);
+  const limit = Math.min(Number(url.searchParams.get("limit") ?? 100), 500);
+  const before = url.searchParams.get("before");
   const rows = await query(
     `select e.id, e.type, e.start_time, e.end_time, e.data, e.note,
             e.created_by, u.name as created_by_name
        from events e join users u on u.id = e.created_by
       where e.child_id = $1 and e.deleted_at is null
+        and ($3::timestamptz is null or e.start_time < $3)
       order by e.start_time desc
       limit $2`,
-    [params.id, limit]
+    [params.id, limit, before]
   );
   return json({ events: rows });
 }

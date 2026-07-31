@@ -39,6 +39,9 @@ type EventRow = {
 
 type Sheet = { kind: "nursing" } | { kind: "log"; type: EventType } | { kind: "edit"; event: EventRow } | null;
 
+// Timeline page size — must match the initial server-side load in the page.
+const PAGE_SIZE = 200;
+
 export default function ChildTimeline({
   child,
   initialEvents,
@@ -54,6 +57,10 @@ export default function ChildTimeline({
   const [sheet, setSheet] = useState<Sheet>(openNursing ? { kind: "nursing" } : null);
   const [now, setNow] = useState(() => Date.now());
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  // Timeline is paged newest-first; the server sends the first PAGE_SIZE, and
+  // "Load older" fetches the next page back from the oldest loaded event.
+  const [hasMore, setHasMore] = useState(initialEvents.length >= PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
   const toggleDay = (day: string) =>
     setCollapsedDays((prev) => {
       const next = new Set(prev);
@@ -67,6 +74,26 @@ export default function ChildTimeline({
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  async function loadOlder() {
+    if (loadingMore || !events.length) return;
+    setLoadingMore(true);
+    try {
+      const oldest = events[events.length - 1].start_time;
+      const { events: older } = await api<{ events: EventRow[] }>(
+        `/api/children/${child.id}/events?limit=${PAGE_SIZE}&before=${encodeURIComponent(oldest)}`
+      );
+      setEvents((list) => {
+        const seen = new Set(list.map((e) => e.id));
+        return [...list, ...older.filter((e) => !seen.has(e.id))].sort(
+          (a, b) => +new Date(b.start_time) - +new Date(a.start_time)
+        );
+      });
+      setHasMore(older.length >= PAGE_SIZE);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   const upsert = useCallback((e: EventRow) => {
     setEvents((list) => {
@@ -330,6 +357,15 @@ export default function ChildTimeline({
             </div>
           );
         })}
+        {hasMore && (
+          <button
+            onClick={loadOlder}
+            disabled={loadingMore}
+            className="tap mx-auto mb-8 mt-2 block rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 active:bg-gray-50 disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load older"}
+          </button>
+        )}
       </div>
 
       {/* sheets */}
