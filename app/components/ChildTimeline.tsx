@@ -194,6 +194,35 @@ export default function ChildTimeline({
   const inProgress = events.filter((e) => !e.end_time && EVENT_DEFS[e.type]?.kind === "duration");
   const nursingSession = inProgress.find((e) => e.type === "feed_breast") ?? null;
 
+  // The most recent COMPLETED duration session — the one you'd resume if you
+  // accidentally saved it. Chosen by latest start_time, so point events (a poop,
+  // a bottle…) logged in between don't change what's resumable.
+  const resumable = useMemo(() => {
+    let best: EventRow | null = null;
+    for (const e of events) {
+      if (EVENT_DEFS[e.type]?.kind === "duration" && e.end_time) {
+        if (!best || +new Date(e.start_time) > +new Date(best.start_time)) best = e;
+      }
+    }
+    return best;
+  }, [events]);
+
+  // Reopen a completed duration event so its timer continues.
+  async function resumeEvent(e: EventRow) {
+    const body: any = { end_time: null };
+    if (e.type === "feed_breast") {
+      const side = (e.data?.last_side as Side) || "left";
+      body.data = {
+        left_seconds: e.data?.left_seconds ?? 0,
+        right_seconds: e.data?.right_seconds ?? 0,
+        active_side: side,
+        active_since: new Date().toISOString(),
+      };
+    }
+    await patchEvent(e.id, body);
+    if (e.type === "feed_breast") setSheet({ kind: "nursing" });
+  }
+
   // ——— nursing session control (server-backed, timestamp-based) ———
   async function nurseTapSide(side: Side) {
     const s = nursingSession;
@@ -261,6 +290,18 @@ export default function ChildTimeline({
   }
 
   const grouped = groupByDay(events);
+
+  // Show a "resume last session" card when a nursing/sleep session was recently
+  // ended (and nothing is currently running) — makes an accidental save easy to
+  // undo without hunting through the timeline.
+  const RESUME_WINDOW_MS = 2 * 60 * 60 * 1000; // only offer resume for ~2h
+  const resumeCard =
+    inProgress.length === 0 &&
+    resumable &&
+    (resumable.type === "feed_breast" || resumable.type === "sleep") &&
+    now - +new Date(resumable.end_time!) < RESUME_WINDOW_MS
+      ? resumable
+      : null;
 
   // ——— Pull-to-refresh (only engages when scrolled to the very top) ———
   const PULL_TRIGGER = 60;
@@ -377,6 +418,33 @@ export default function ChildTimeline({
         </div>
       )}
 
+      {/* resume last session */}
+      {resumeCard && (
+        <div className="px-5 pt-2">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+            <button
+              onClick={() => setSheet({ kind: "edit", event: resumeCard })}
+              className="tap min-w-0 flex-1 text-left"
+            >
+              <p className="truncate text-sm font-semibold text-gray-800">
+                {EVENT_DEFS[resumeCard.type].emoji} Last {EVENT_DEFS[resumeCard.type].label.toLowerCase()} · {clockTime(resumeCard.start_time)}–{clockTime(resumeCard.end_time!)}
+              </p>
+              <p className="truncate text-xs text-gray-500">
+                {resumeCard.type === "feed_breast"
+                  ? summarizeEvent(resumeCard.type, resumeCard.data)
+                  : humanDuration((+new Date(resumeCard.end_time!) - +new Date(resumeCard.start_time)) / 1000)}
+              </p>
+            </button>
+            <button
+              onClick={() => resumeEvent(resumeCard)}
+              className="tap shrink-0 rounded-full bg-rose-500 px-4 py-1.5 text-sm font-semibold text-white active:bg-rose-600"
+            >
+              ▶ Resume
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* next-nap prediction */}
       {nap.state === "predict" && <NapBanner nextWindowMs={nap.nextWindowMs} wakeWindowMin={nap.wakeWindowMin} personalized={nap.personalized} childName={child.name} nowMs={now} />}
 
@@ -483,7 +551,7 @@ export default function ChildTimeline({
       {sheet?.kind === "edit" && (
         <EditEventSheet
           event={sheet.event}
-          isMostRecent={sheet.event.id === events[0]?.id}
+          isMostRecent={sheet.event.id === resumable?.id}
           onClose={() => setSheet(null)}
           onSaved={(updated) => {
             upsert(updated);

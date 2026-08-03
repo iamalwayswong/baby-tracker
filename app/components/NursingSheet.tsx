@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { stopwatch, humanDuration } from "@/lib/format";
 import { Side, SIDE, liveNursing } from "@/lib/events";
+import { ConfirmModal } from "@/app/components/ui";
 
 type EventRow = {
   id: string;
@@ -34,6 +35,7 @@ export default function NursingSheet({
 }) {
   const [now, setNow] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -100,9 +102,23 @@ export default function NursingSheet({
       </p>
 
       {session && (
-        <button onClick={() => onDiscard()} className="tap mt-3 text-center text-sm font-medium text-red-500 active:text-red-700">
+        <button onClick={() => setConfirmDiscard(true)} className="tap mt-3 text-center text-sm font-medium text-red-500 active:text-red-700">
           Discard this session
         </button>
+      )}
+
+      {confirmDiscard && (
+        <ConfirmModal
+          title="Discard this session?"
+          message="This nursing session will be deleted and its timer lost. This can't be undone."
+          confirmLabel="Discard"
+          tone="danger"
+          onConfirm={() => {
+            setConfirmDiscard(false);
+            onDiscard();
+          }}
+          onCancel={() => setConfirmDiscard(false)}
+        />
       )}
     </div>
   );
