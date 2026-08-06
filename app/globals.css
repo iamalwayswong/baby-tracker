@@ -11,6 +11,7 @@
 /* Values are RGB channel triplets (not hex) so Tailwind's opacity modifiers
  * (e.g. bg-surface/90) work via rgb(var(--token) / <alpha-value>). */
 :root {
+  color-scheme: dark; /* themes native controls: input backgrounds, date/time pickers, the clock icon, scrollbars */
   --background: 14 14 19; /* page behind the phone frame */
   --foreground: 231 229 238;
   --surface: 23 23 31; /* cards, sheets, the phone frame */
@@ -24,6 +25,7 @@
 }
 
 :root.light {
+  color-scheme: light;
   --background: 245 243 255;
   --foreground: 30 27 46;
   --surface: 255 255 255;

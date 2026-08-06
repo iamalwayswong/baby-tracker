@@ -17,7 +17,7 @@ import {
 } from "@/lib/stats";
 import { hoursMinutes, minutesLabel, timeAgo } from "@/lib/format";
 import { SIDE } from "@/lib/events";
-import { Card } from "@/app/components/ui";
+import { Card, TextInput } from "@/app/components/ui";
 
 const PRESETS = [
   { key: "today", label: "Today", days: 1 },
@@ -118,24 +118,24 @@ export default function StatsView({
         <div className="mb-5 flex items-end gap-2">
           <label className="flex-1 text-xs text-ink-soft">
             From
-            <input
+            <TextInput
               type="date"
               value={from}
               min={minDate}
               max={to}
               onChange={(e) => setFrom(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm"
+              className="mt-1"
             />
           </label>
           <label className="flex-1 text-xs text-ink-soft">
             To
-            <input
+            <TextInput
               type="date"
               value={to}
               min={from}
               max={ymd(now)}
               onChange={(e) => setTo(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm"
+              className="mt-1"
             />
           </label>
         </div>
