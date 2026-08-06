@@ -101,6 +101,6 @@ function Body({ type, data, setData }: { type: EventType; data: any; setData: (d
     case "temperature":
       return <Stepper label="Temp" value={data.celsius ?? 37} step={1} unit="°C" onChange={(v) => set({ celsius: v })} />;
     default:
-      return <p className="text-center text-sm text-gray-500">Tap “Log it” to record.</p>;
+      return <p className="text-center text-sm text-ink-soft">Tap “Log it” to record.</p>;
   }
 }

@@ -10,7 +10,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function TextInpu
       ref={ref}
       {...rest}
       className={cn(
-        "w-full rounded-xl border border-gray-300 px-4 py-3 text-base outline-none focus:border-brand-500",
+        "w-full rounded-xl border border-line px-4 py-3 text-base outline-none focus:border-brand-500",
         className
       )}
     />

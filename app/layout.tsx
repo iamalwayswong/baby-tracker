@@ -16,18 +16,26 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6366f1",
+  // Dark is the default theme; the init script below flips this to the light
+  // page color when the user has opted into light mode.
+  themeColor: "#0e0e13",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
 };
 
+// Runs before first paint so a light-mode user never flashes the default dark
+// theme: reads the saved preference and, if "light", tags <html> accordingly
+// (and matches the PWA status-bar color).
+const themeInit = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.add('light');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#f5f3ff');}}catch(e){}})();`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} antialiased`}>
-        <div className="mx-auto min-h-dvh w-full max-w-md bg-white shadow-sm">{children}</div>
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+        <div className="mx-auto min-h-dvh w-full max-w-md bg-surface shadow-sm">{children}</div>
       </body>
     </html>
   );

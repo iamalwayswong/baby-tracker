@@ -10,7 +10,7 @@ export interface FieldProps {
 export default function Field({ label, children, className }: FieldProps) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-sm font-medium text-gray-700">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-ink">{label}</span>
       {children}
     </label>
   );

@@ -57,7 +57,7 @@ export default function ActiveTimers({ childId }: { childId: string }) {
   if (!inProgress.length) return null;
 
   return (
-    <div className="sticky top-0 z-30 space-y-1.5 bg-white/85 px-4 pb-1.5 pt-2 backdrop-blur">
+    <div className="sticky top-0 z-30 space-y-1.5 bg-surface/85 px-4 pb-1.5 pt-2 backdrop-blur">
       {inProgress.map((e) => {
         const isNursing = e.type === "feed_breast";
         const href = `/child/${childId}${isNursing ? "?open=nursing" : ""}`;
@@ -85,7 +85,7 @@ export default function ActiveTimers({ childId }: { childId: string }) {
             <span className="text-sm font-medium">
               {EVENT_DEFS[e.type].emoji} {EVENT_DEFS[e.type].label} · {detail}
             </span>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-800">Open</span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800">Open</span>
           </button>
         );
       })}

@@ -42,7 +42,7 @@ export default function Sheet({ onClose, title, children, className, showClose =
     <div className="fixed inset-0 z-50 mx-auto flex max-w-md items-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
       <div
-        className={cn("relative w-full rounded-t-3xl bg-white px-5 pb-8 pt-3", className)}
+        className={cn("relative w-full rounded-t-3xl bg-surface px-5 pb-8 pt-3", className)}
         onClick={(e) => e.stopPropagation()}
         style={{
           transform: dragY ? `translateY(${dragY}px)` : undefined,
@@ -56,14 +56,14 @@ export default function Sheet({ onClose, title, children, className, showClose =
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
         >
-          <div className="mx-auto h-1.5 w-10 rounded-full bg-gray-300" />
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-ink-faint" />
         </div>
 
         {showClose && (
           <button
             onClick={onClose}
             aria-label="Close"
-            className="tap absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 active:bg-gray-100"
+            className="tap absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-ink-faint active:bg-surface-muted"
           >
             ✕
           </button>

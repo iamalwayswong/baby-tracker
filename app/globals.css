@@ -2,14 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens. DARK is the default (the app is used a lot at night, where a
+ * bright UI is over-stimulating); LIGHT is opted into via `.light` on <html>.
+ * Components never hardcode gray/white — they use the semantic utilities
+ * (bg-surface, text-ink, border-line, …) so both themes stay in sync here.
+ */
+/* Values are RGB channel triplets (not hex) so Tailwind's opacity modifiers
+ * (e.g. bg-surface/90) work via rgb(var(--token) / <alpha-value>). */
 :root {
-  --background: #f5f3ff;
-  --foreground: #1e1b2e;
+  --background: 14 14 19; /* page behind the phone frame */
+  --foreground: 231 229 238;
+  --surface: 23 23 31; /* cards, sheets, the phone frame */
+  --surface-muted: 32 32 41; /* subtle fills (inputs, quiet rows) */
+  --ink: 237 237 242; /* primary text */
+  --ink-soft: 169 167 180; /* secondary text */
+  --ink-faint: 111 109 123; /* tertiary text / icons */
+  --line: 43 43 54; /* borders & dividers */
+  --accent-soft-bg: 38 35 74; /* active chip / tint background */
+  --accent-soft-fg: 199 210 254; /* text on the soft accent */
+}
+
+:root.light {
+  --background: 245 243 255;
+  --foreground: 30 27 46;
+  --surface: 255 255 255;
+  --surface-muted: 246 245 251;
+  --ink: 31 41 55;
+  --ink-soft: 75 85 99;
+  --ink-faint: 156 163 175;
+  --line: 229 231 235;
+  --accent-soft-bg: 238 242 255;
+  --accent-soft-fg: 67 56 202;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   /* respect iOS safe areas for the PWA */
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);

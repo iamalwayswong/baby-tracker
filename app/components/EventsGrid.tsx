@@ -220,15 +220,15 @@ export default function EventsGrid({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-white text-sm">
+    <div className="fixed inset-0 z-40 flex flex-col bg-surface text-sm">
       {/* header */}
-      <header className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-        <Link href={`/child/${childId}`} className="tap text-gray-500 active:text-gray-700">
+      <header className="flex items-center justify-between border-b border-line px-4 py-3">
+        <Link href={`/child/${childId}`} className="tap text-ink-soft active:text-ink">
           ‹ Timeline
         </Link>
         <div className="text-center">
           <h1 className="font-bold leading-tight">{childName} · All entries</h1>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-ink-faint">
             {dirtyCount > 0 ? `${dirtyCount} unsaved change${dirtyCount > 1 ? "s" : ""}` : savedAt ? `saved ${savedAt}` : `${rows.length} entries`}
           </span>
         </div>
@@ -238,8 +238,8 @@ export default function EventsGrid({
       </header>
 
       {/* toolbar */}
-      <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
-        <button onClick={addRow} className="tap rounded-lg border border-brand-300 px-3 py-1.5 font-medium text-brand-700 active:bg-brand-50">
+      <div className="flex items-center gap-2 border-b border-line px-4 py-2">
+        <button onClick={addRow} className="tap rounded-lg border border-brand-300 px-3 py-1.5 font-medium text-brand-700 active:bg-accent-soft">
           + Add row
         </button>
         {selected.size > 0 && (
@@ -253,7 +253,7 @@ export default function EventsGrid({
       {/* table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full border-collapse">
-          <thead className="sticky top-0 z-10 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+          <thead className="sticky top-0 z-10 bg-surface-muted text-left text-xs uppercase tracking-wide text-ink-soft">
             <tr>
               <th className="w-8 px-2 py-2"></th>
               <th className="px-2 py-2">Type</th>
@@ -269,7 +269,7 @@ export default function EventsGrid({
             {sortedRows.map((r, i) => {
               const def = EVENT_DEFS[r.type];
               const fields = DETAIL_FIELDS[r.type] ?? [];
-              const rowBg = r.isNew ? "bg-emerald-50" : r.dirty ? "bg-amber-50" : "";
+              const rowBg = r.isNew ? "bg-emerald-50 dark:bg-emerald-950/30" : r.dirty ? "bg-amber-50 dark:bg-amber-950/30" : "";
               // day separator when the day changes from the previous row
               const day = r.start ? dayLabel(r.start) : "No date";
               const prevDay = i > 0 && sortedRows[i - 1].start ? dayLabel(sortedRows[i - 1].start) : null;
@@ -280,13 +280,13 @@ export default function EventsGrid({
                     <tr>
                       <td
                         colSpan={8}
-                        className="bg-gray-100 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500"
+                        className="bg-surface-muted px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft"
                       >
                         {day}
                       </td>
                     </tr>
                   )}
-                  <tr className={`border-b border-gray-100 ${rowBg}`}>
+                  <tr className={`border-b border-line ${rowBg}`}>
                   <td className="px-2 py-1.5">
                     <input type="checkbox" checked={selected.has(r.key)} onChange={() => toggleSelect(r.key)} />
                   </td>
@@ -294,7 +294,7 @@ export default function EventsGrid({
                     <select
                       value={r.type}
                       onChange={(e) => patchRow(r.key, { type: e.target.value as EventType, data: {} })}
-                      className="rounded border border-gray-200 bg-white px-1.5 py-1"
+                      className="rounded border border-line bg-surface px-1.5 py-1"
                     >
                       {ALL_EVENT_TYPES.map((t) => (
                         <option key={t} value={t}>
@@ -310,7 +310,7 @@ export default function EventsGrid({
                       onChange={(e) => patchRow(r.key, { start: e.target.value })}
                       onFocus={() => setEditingTime(true)}
                       onBlur={() => setEditingTime(false)}
-                      className="rounded border border-gray-200 px-1.5 py-1"
+                      className="rounded border border-line px-1.5 py-1"
                     />
                   </td>
                   <td className="px-2 py-1.5">
@@ -321,18 +321,18 @@ export default function EventsGrid({
                         onChange={(e) => patchRow(r.key, { end: e.target.value })}
                         onFocus={() => setEditingTime(true)}
                         onBlur={() => setEditingTime(false)}
-                        className="rounded border border-gray-200 px-1.5 py-1"
+                        className="rounded border border-line px-1.5 py-1"
                       />
                     ) : (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-ink-faint">—</span>
                     )}
                   </td>
                   <td className="px-2 py-1.5">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      {fields.length === 0 && <span className="text-gray-300">—</span>}
+                      {fields.length === 0 && <span className="text-ink-faint">—</span>}
                       {fields.map((f) => (
                         <span key={f.key} className="inline-flex items-center gap-0.5">
-                          {f.label && <span className="text-xs text-gray-400">{f.label}</span>}
+                          {f.label && <span className="text-xs text-ink-faint">{f.label}</span>}
                           {f.kind === "multi" ? (
                             <ToggleChips
                               options={f.options}
@@ -344,7 +344,7 @@ export default function EventsGrid({
                             <select
                               value={String(fieldDisplayValue(r.data, f))}
                               onChange={(e) => setDetail(r.key, f, e.target.value)}
-                              className="rounded border border-gray-200 bg-white px-1.5 py-1"
+                              className="rounded border border-line bg-surface px-1.5 py-1"
                             >
                               <option value=""></option>
                               {f.options.map((o) => (
@@ -358,10 +358,10 @@ export default function EventsGrid({
                               type={f.kind === "number" ? "number" : "text"}
                               value={String(fieldDisplayValue(r.data, f))}
                               onChange={(e) => setDetail(r.key, f, e.target.value)}
-                              className={`rounded border border-gray-200 px-1.5 py-1 ${f.kind === "number" ? "w-16" : "w-28"}`}
+                              className={`rounded border border-line px-1.5 py-1 ${f.kind === "number" ? "w-16" : "w-28"}`}
                             />
                           )}
-                          {f.kind === "number" && "unit" in f && f.unit && <span className="text-xs text-gray-400">{f.unit}</span>}
+                          {f.kind === "number" && "unit" in f && f.unit && <span className="text-xs text-ink-faint">{f.unit}</span>}
                         </span>
                       ))}
                     </div>
@@ -370,21 +370,21 @@ export default function EventsGrid({
                     <input
                       value={r.note}
                       onChange={(e) => patchRow(r.key, { note: e.target.value })}
-                      className="w-32 rounded border border-gray-200 px-1.5 py-1"
+                      className="w-32 rounded border border-line px-1.5 py-1"
                       placeholder="—"
                     />
                   </td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-xs text-gray-400">{r.loggedBy || (r.isNew ? "you (new)" : "")}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 text-xs text-ink-faint">{r.loggedBy || (r.isNew ? "you (new)" : "")}</td>
                   <td className="px-2 py-1.5">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => duplicateRow(r.key)}
-                        className="tap text-gray-400 active:text-brand-600"
+                        className="tap text-ink-faint active:text-brand-600"
                         title="Duplicate row"
                       >
                         ⧉
                       </button>
-                      <button onClick={() => removeRow(r.key)} className="tap text-gray-300 active:text-red-500" title="Delete row">
+                      <button onClick={() => removeRow(r.key)} className="tap text-ink-faint active:text-red-500" title="Delete row">
                         ✕
                       </button>
                     </div>
@@ -395,7 +395,7 @@ export default function EventsGrid({
             })}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-gray-400">No entries. Tap “+ Add row” to start.</p>}
+        {rows.length === 0 && <p className="p-8 text-center text-ink-faint">No entries. Tap “+ Add row” to start.</p>}
       </div>
     </div>
   );

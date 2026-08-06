@@ -16,7 +16,7 @@ export default function StyleGuidePage() {
     <div className="space-y-8 px-5 py-8">
       <header>
         <h1 className="text-2xl font-bold text-brand-600">🐣 Nestling — Style Guide</h1>
-        <p className="text-sm text-gray-500">The shared UI kit. Change a primitive once → it updates everywhere.</p>
+        <p className="text-sm text-ink-soft">The shared UI kit. Change a primitive once → it updates everywhere.</p>
       </header>
 
       <Section title="Brand color scale">
@@ -35,11 +35,11 @@ export default function StyleGuidePage() {
           ].map(([label, cls]) => (
             <div key={label} className="flex-1 text-center">
               <div className={`h-10 rounded ${cls}`} />
-              <span className="text-[10px] text-gray-400">{label}</span>
+              <span className="text-[10px] text-ink-faint">{label}</span>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-gray-400">Defined in tailwind.config.ts → theme.extend.colors.brand.</p>
+        <p className="mt-2 text-xs text-ink-faint">Defined in tailwind.config.ts → theme.extend.colors.brand.</p>
       </Section>
 
       <Section title="Buttons">
@@ -74,7 +74,7 @@ export default function StyleGuidePage() {
 
       <Section title="Choice chips">
         <ChoiceChips options={["wet", "dirty", "mixed"]} value={chip} onChange={setChip} />
-        <p className="mt-1 text-xs text-gray-400">Selected: {chip}</p>
+        <p className="mt-1 text-xs text-ink-faint">Selected: {chip}</p>
       </Section>
 
       <Section title="Stepper">
@@ -86,7 +86,7 @@ export default function StyleGuidePage() {
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-xl">👶</span>
           <div>
             <p className="font-semibold">Card title</p>
-            <p className="text-sm text-gray-500">Subtitle text</p>
+            <p className="text-sm text-ink-soft">Subtitle text</p>
           </div>
         </Card>
         <Card subtle className="mt-2">Subtle card (list row)</Card>
@@ -96,7 +96,7 @@ export default function StyleGuidePage() {
         <Button variant="secondary" onClick={() => setSheetOpen(true)}>Open sheet</Button>
         {sheetOpen && (
           <Sheet onClose={() => setSheetOpen(false)} title="Example sheet">
-            <p className="text-sm text-gray-500">Any content goes here.</p>
+            <p className="text-sm text-ink-soft">Any content goes here.</p>
             <Button fullWidth className="mt-4" onClick={() => setSheetOpen(false)}>Done</Button>
           </Sheet>
         )}
@@ -120,7 +120,7 @@ export default function StyleGuidePage() {
         <p className="text-2xl font-bold">Heading — text-2xl bold</p>
         <p className="text-base font-bold">Emphasis — text-base bold</p>
         <p className="text-sm">Body — text-sm</p>
-        <p className="text-xs text-gray-400">Muted caption — text-xs gray-400</p>
+        <p className="text-xs text-ink-faint">Muted caption — text-xs gray-400</p>
       </Section>
     </div>
   );
@@ -129,7 +129,7 @@ export default function StyleGuidePage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</h2>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{title}</h2>
       {children}
     </section>
   );

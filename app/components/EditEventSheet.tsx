@@ -245,7 +245,7 @@ function TimeField({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-medium text-ink">{label}</span>
         <button
           type="button"
           onClick={() => setShowDate((s) => !s)}

@@ -11,8 +11,8 @@ export default function Card({ subtle, className, children, ...rest }: CardProps
     <div
       {...rest}
       className={cn(
-        "rounded-2xl border bg-white",
-        subtle ? "border-gray-100 p-3" : "border-gray-200 p-4",
+        "rounded-2xl border bg-surface",
+        subtle ? "border-line p-3" : "border-line p-4",
         className
       )}
     >

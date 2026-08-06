@@ -48,10 +48,10 @@ export default function ChildrenList({
     <div className="px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500">Hi, {userName} 👋</p>
+          <p className="text-sm text-ink-soft">Hi, {userName} 👋</p>
           <h1 className="text-2xl font-bold">Your children</h1>
         </div>
-        <button onClick={logout} className="tap text-sm text-gray-400 active:text-gray-600">
+        <button onClick={logout} className="tap text-sm text-ink-faint active:text-ink-soft">
           Log out
         </button>
       </div>
@@ -60,15 +60,15 @@ export default function ChildrenList({
         {children.map((c) => (
           <Link key={c.id} href={`/child/${c.id}`} className="tap block active:opacity-70">
             <Card className="flex items-center gap-4">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-2xl">👶</span>
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-2xl">👶</span>
               <div className="flex-1">
                 <p className="font-semibold">{c.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-ink-soft">
                   {c.birth_date ? new Date(c.birth_date).toLocaleDateString() : "No birthday set"}
                   {c.role === "owner" ? " · owner" : " · caregiver"}
                 </p>
               </div>
-              <span className="text-gray-300">›</span>
+              <span className="text-ink-faint">›</span>
             </Card>
           </Link>
         ))}
@@ -90,7 +90,7 @@ export default function ChildrenList({
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="tap mt-6 w-full rounded-2xl border-2 border-dashed border-gray-300 py-4 font-medium text-gray-500 active:bg-gray-50"
+          className="tap mt-6 w-full rounded-2xl border-2 border-dashed border-line py-4 font-medium text-ink-soft active:bg-surface-muted"
         >
           + Add a child
         </button>

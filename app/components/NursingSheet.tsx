@@ -58,12 +58,12 @@ export default function NursingSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col bg-white px-5 py-6">
+    <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col bg-surface px-5 py-6">
       <div className="flex items-center justify-between">
-        <button onClick={onClose} className="tap text-gray-500 active:text-gray-700">
+        <button onClick={onClose} className="tap text-ink-soft active:text-ink">
           {session ? "Minimize" : "Close"}
         </button>
-        <span className="font-semibold text-gray-800">🤱 Nursing</span>
+        <span className="font-semibold text-ink">🤱 Nursing</span>
         <button
           onClick={save}
           disabled={saving || total < 1}
@@ -74,22 +74,22 @@ export default function NursingSheet({
       </div>
 
       {/* last side / start hint */}
-      <div className="mt-5 rounded-2xl bg-gray-50 p-3 text-center text-sm">
+      <div className="mt-5 rounded-2xl bg-surface-muted p-3 text-center text-sm">
         {session ? (
-          <span className="text-gray-500">Running in the background — you can close this and come back.</span>
+          <span className="text-ink-soft">Running in the background — you can close this and come back.</span>
         ) : lastSide ? (
           <>
-            <span className="text-gray-500">Last time: </span>
+            <span className="text-ink-soft">Last time: </span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${SIDE[lastSide].soft}`}>{SIDE[lastSide].label}</span>
-            <span className="text-gray-500"> · start on </span>
+            <span className="text-ink-soft"> · start on </span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${SIDE[suggestedSide].soft}`}>{SIDE[suggestedSide].label}</span>
           </>
         ) : (
-          <span className="text-gray-500">First feed — start on either side</span>
+          <span className="text-ink-soft">First feed — start on either side</span>
         )}
       </div>
 
-      <p className="mt-6 text-center text-sm text-gray-500">Total</p>
+      <p className="mt-6 text-center text-sm text-ink-soft">Total</p>
       <p className="text-center text-5xl font-bold tabular-nums">{stopwatch(total)}</p>
 
       <div className="mt-8 grid flex-1 grid-cols-2 gap-4">
@@ -97,7 +97,7 @@ export default function NursingSheet({
         <SideButton side="right" seconds={right} active={active === "right"} suggested={suggestedSide === "right" && !started} onTap={() => onSide("right")} />
       </div>
 
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="mt-6 text-center text-sm text-ink-soft">
         {active ? "Tap the running side to pause" : "Tap a side to start the timer"}
       </p>
 
@@ -142,11 +142,11 @@ function SideButton({
     <button
       onClick={onTap}
       className={`tap relative flex flex-col items-center justify-center rounded-3xl border-2 text-center transition-colors ${
-        active ? `${s.solid} border-transparent text-white` : "border-gray-200 bg-white text-gray-700 active:bg-gray-50"
+        active ? `${s.solid} border-transparent text-white` : "border-line bg-surface text-ink active:bg-surface-muted"
       }`}
     >
       {suggested && (
-        <span className={`absolute top-3 rounded-full px-2 py-0.5 text-xs font-semibold ${active ? "bg-white/90 text-gray-700" : s.soft}`}>
+        <span className={`absolute top-3 rounded-full px-2 py-0.5 text-xs font-semibold ${active ? "bg-white/90 text-slate-800" : s.soft}`}>
           start here
         </span>
       )}

@@ -56,8 +56,8 @@ export type Side = "left" | "right";
 // Per-side identity for nursing — Left = blue, Right = pink. Used for the
 // colored L/R badges on the timeline and the buttons in the nursing sheet.
 export const SIDE: Record<Side, { label: string; short: string; solid: string; soft: string }> = {
-  left: { label: "Left", short: "L", solid: "bg-sky-500", soft: "bg-sky-100 text-sky-700" },
-  right: { label: "Right", short: "R", solid: "bg-pink-500", soft: "bg-pink-100 text-pink-700" },
+  left: { label: "Left", short: "L", solid: "bg-sky-500", soft: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300" },
+  right: { label: "Right", short: "R", solid: "bg-pink-500", soft: "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300" },
 };
 
 export type DiaperKind = "pee" | "poop";
@@ -65,7 +65,7 @@ export type DiaperKind = "pee" | "poop";
 // Per-contents identity for diapers — mirrors SIDE. Pee = yellow, Poop = brown,
 // used for the colored pill badges on the timeline (like the L/R nursing pills).
 export const DIAPER: Record<DiaperKind, { label: string; soft: string }> = {
-  pee: { label: "Pee", soft: "bg-yellow-200 text-yellow-800" },
+  pee: { label: "Pee", soft: "bg-yellow-200 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-300" },
   poop: { label: "Poop", soft: "bg-amber-800 text-white" },
 };
 

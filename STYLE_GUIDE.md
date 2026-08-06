@@ -7,7 +7,7 @@ happens in **one place**. Live gallery: run the app and visit **`/style-guide`**
 
 - **Mobile-first, one-handed.** Big tap targets; the `tap` utility (in `globals.css`) removes the tap highlight and sets `touch-action: manipulation`.
 - **One source of truth per pattern.** Don't hand-roll a button/input/sheet — use the kit. If the kit can't do it, extend the kit, don't fork it.
-- **Semantic color, not raw palette.** Use `brand-*` for the accent, never `indigo-*` directly. Per-tracker colors live in `lib/events.ts` (`EVENT_DEFS[type].color`).
+- **Semantic color, not raw palette.** Use `brand-*` for the accent and the theme tokens below for surfaces/text/borders — never `bg-white`, `bg-gray-*`, or `text-gray-*` directly (they don't adapt to dark mode). Per-tracker colors live in `lib/events.ts` (`EVENT_DEFS[type].color`).
 - **No native dialogs.** Never use `window.confirm`/`alert`. Use `ConfirmModal` for confirmations (destructive actions, discarding unsaved changes).
 
 ## Design tokens
@@ -15,7 +15,23 @@ happens in **one place**. Live gallery: run the app and visit **`/style-guide`**
 | Token | Where | Notes |
 |---|---|---|
 | **Brand accent** | `tailwind.config.ts` → `theme.extend.colors.brand` (50–900) | Change these hex values to re-theme every button/link/chip/active state at once. Currently the indigo scale. |
-| **App background / text** | `app/globals.css` (`--background`, `--foreground`) | Warm off-white page bg. |
+| **Theme tokens** | `app/globals.css` (`:root` = dark, `:root.light` = light) → utilities in `tailwind.config.ts` | Semantic surfaces/text/lines that adapt to the theme. Values are RGB channel triplets so opacity modifiers (`bg-surface/90`) work. |
+
+### Theme (dark by default)
+
+Dark is the default (`:root`); light is opted into via a `.light` class on `<html>` (`ThemeToggle` + a no-flash init script in `app/layout.tsx`). Use these utilities instead of raw gray/white:
+
+| Utility | Role | ~Light | ~Dark |
+|---|---|---|---|
+| `bg-surface` | cards, sheets, the phone frame | white | near-black |
+| `bg-surface-muted` | subtle fills (inputs, quiet rows, pressed states) | gray-50 | slightly lifted |
+| `text-ink` | primary text | gray-800 | near-white |
+| `text-ink-soft` | secondary text | gray-600 | muted |
+| `text-ink-faint` | tertiary text / icons | gray-400 | dim |
+| `border-line` | borders & dividers | gray-200 | subtle |
+| `bg-accent-soft` / `text-accent-soft-fg` | active chips / tints | indigo-50 / indigo-700 | deep indigo / indigo-200 |
+
+For a colored pastel banner (rose/amber/indigo tints), pair the light class with a `dark:` tint, e.g. `bg-rose-50 dark:bg-rose-950/40`. Elements that must stay light on a saturated banner (a white pill on a rose bar) use literal `bg-white` + `text-slate-800` on purpose — that's the one sanctioned exception to "no raw palette."
 | **Radius** | Tailwind defaults | `rounded-xl` for controls, `rounded-2xl` for cards, `rounded-t-3xl` for sheets. |
 | **Phone frame** | `app/layout.tsx` | Everything is centered in `max-w-md`. Full-bleed views (grid) use `fixed inset-0`. |
 

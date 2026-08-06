@@ -27,7 +27,7 @@ export default function ChoiceChips({ options, value, onChange, className }: Cho
             onClick={() => onChange(o.value)}
             className={cn(
               "tap flex-1 rounded-xl border py-2.5 text-sm font-medium capitalize transition-colors",
-              active ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-300 text-gray-700"
+              active ? "border-brand-500 bg-accent-soft text-accent-soft-fg" : "border-line text-ink"
             )}
           >
             {o.label}

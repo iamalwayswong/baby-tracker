@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
 import { Button, Card, ChoiceChips, ConfirmModal, Field, TextInput } from "@/app/components/ui";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 type Caregiver = { id: string; name: string; email: string; role: string };
 type Invite = { id: string; email: string; expiresAt: string; url: string; emailed?: boolean };
@@ -118,13 +119,17 @@ export default function ChildSettings({
 
   return (
     <div className="px-5 py-6">
-      <Link href={`/child/${child.id}`} className="tap text-gray-400 active:text-gray-600">
+      <Link href={`/child/${child.id}`} className="tap text-ink-faint active:text-ink-soft">
         ‹ Back
       </Link>
       <h1 className="mb-6 mt-3 text-2xl font-bold">{child.name} · Settings</h1>
 
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Appearance</h2>
+      <ThemeToggle />
+      <p className="mb-8 mt-2 text-xs text-ink-faint">Dark by default — easier on the eyes for night feeds.</p>
+
       {/* Edit details */}
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Details</h2>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Details</h2>
       <Card>
         <form onSubmit={saveDetails} className="space-y-3">
           <Field label="Name">
@@ -140,16 +145,16 @@ export default function ChildSettings({
         </form>
       </Card>
 
-      <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-gray-400">Caregivers</h2>
+      <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-ink-faint">Caregivers</h2>
 
       <div className="space-y-2">
         {caregivers.map((c) => (
           <Card key={c.id} className="flex items-center justify-between">
             <div>
               <p className="font-medium">{c.name}</p>
-              <p className="text-sm text-gray-500">{c.email}</p>
+              <p className="text-sm text-ink-soft">{c.email}</p>
             </div>
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs capitalize text-gray-600">{c.role}</span>
+            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs capitalize text-ink-soft">{c.role}</span>
           </Card>
         ))}
       </div>
@@ -175,12 +180,12 @@ export default function ChildSettings({
             (invites[0]?.emailed ? (
               <p className="mt-2 text-xs text-emerald-600">✓ Emailed the invite — you can also copy the link below.</p>
             ) : (
-              <p className="mt-2 text-xs text-gray-400">Copy the link below and send it to them.</p>
+              <p className="mt-2 text-xs text-ink-faint">Copy the link below and send it to them.</p>
             ))}
 
           {invites.length > 0 && (
             <div className="mt-5">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
                 Active invite links ({invites.length})
               </h3>
               <div className="space-y-2">
@@ -188,7 +193,7 @@ export default function ChildSettings({
                   <Card key={inv.id} className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{inv.email}</p>
-                      <p className="text-xs text-gray-400">{daysLeft(inv.expiresAt)}</p>
+                      <p className="text-xs text-ink-faint">{daysLeft(inv.expiresAt)}</p>
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => copy(inv)}>
                       {copiedId === inv.id ? "Copied!" : "Copy link"}
@@ -203,16 +208,16 @@ export default function ChildSettings({
           )}
         </div>
       ) : (
-        <p className="mt-8 text-sm text-gray-400">Only the owner can invite more caregivers.</p>
+        <p className="mt-8 text-sm text-ink-faint">Only the owner can invite more caregivers.</p>
       )}
 
       {role === "owner" && (
-        <div className="mt-10 border-t border-gray-100 pt-6">
+        <div className="mt-10 border-t border-line pt-6">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-400">Danger zone</h2>
           <Button variant="danger" fullWidth onClick={() => setConfirmDelete(true)}>
             Delete {child.name}
           </Button>
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-ink-faint">
             Permanently removes {child.name} and all logged entries. This can&apos;t be undone.
           </p>
         </div>

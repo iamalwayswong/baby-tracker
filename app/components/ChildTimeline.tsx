@@ -331,7 +331,7 @@ export default function ChildTimeline({
       {/* pull-to-refresh indicator */}
       {(pull > 0 || refreshing) && (
         <div
-          className="flex items-center justify-center gap-2 overflow-hidden text-xs text-gray-400"
+          className="flex items-center justify-center gap-2 overflow-hidden text-xs text-ink-faint"
           style={{ height: refreshing ? 44 : pull }}
         >
           <span className={refreshing ? "animate-spin" : pulledEnough ? "rotate-180" : ""}>
@@ -341,22 +341,22 @@ export default function ChildTimeline({
         </div>
       )}
       {/* header */}
-      <header className="sticky top-0 z-20 flex items-center justify-between bg-white/90 px-5 py-4 backdrop-blur">
+      <header className="sticky top-0 z-20 flex items-center justify-between bg-surface/90 px-5 py-4 backdrop-blur">
         <span className="w-10" />
         <div className="flex flex-col items-center">
           <ChildSwitcher current={{ id: child.id, name: child.name }} siblings={siblings} />
-          <span className={`text-xs ${status === "open" ? "text-emerald-500" : "text-gray-400"}`}>
+          <span className={`text-xs ${status === "open" ? "text-emerald-500" : "text-ink-faint"}`}>
             {status === "open" ? "● live" : "connecting…"}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <Link href={`/child/${child.id}/stats`} className="tap text-gray-400 active:text-gray-600" title="Stats">
+          <Link href={`/child/${child.id}/stats`} className="tap text-ink-faint active:text-ink-soft" title="Stats">
             📊
           </Link>
-          <Link href={`/child/${child.id}/manage`} className="tap text-gray-400 active:text-gray-600" title="All entries">
+          <Link href={`/child/${child.id}/manage`} className="tap text-ink-faint active:text-ink-soft" title="All entries">
             ▦
           </Link>
-          <Link href={`/child/${child.id}/settings`} className="tap text-gray-400 active:text-gray-600" title="This child's settings">
+          <Link href={`/child/${child.id}/settings`} className="tap text-ink-faint active:text-ink-soft" title="This child's settings">
             ⚙
           </Link>
         </div>
@@ -421,15 +421,15 @@ export default function ChildTimeline({
       {/* resume last session */}
       {resumeCard && (
         <div className="px-5 pt-2">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/40 px-4 py-3">
             <button
               onClick={() => setSheet({ kind: "edit", event: resumeCard })}
               className="tap min-w-0 flex-1 text-left"
             >
-              <p className="truncate text-sm font-semibold text-gray-800">
+              <p className="truncate text-sm font-semibold text-ink">
                 {EVENT_DEFS[resumeCard.type].emoji} Last {EVENT_DEFS[resumeCard.type].label.toLowerCase()} · {clockTime(resumeCard.start_time)}–{clockTime(resumeCard.end_time!)}
               </p>
-              <p className="truncate text-xs text-gray-500">
+              <p className="truncate text-xs text-ink-soft">
                 {resumeCard.type === "feed_breast"
                   ? summarizeEvent(resumeCard.type, resumeCard.data)
                   : humanDuration((+new Date(resumeCard.end_time!) - +new Date(resumeCard.start_time)) / 1000)}
@@ -467,7 +467,7 @@ export default function ChildTimeline({
               <span className="text-2xl">{def.emoji}</span>
               <span className="text-xs font-medium">{label}</span>
               {type === "feed_breast" && lastSide && (
-                <span className="absolute right-1.5 top-1.5 rounded-full bg-white/90 px-1.5 text-[10px] font-bold text-gray-700">
+                <span className="absolute right-1.5 top-1.5 rounded-full bg-white/90 px-1.5 text-[10px] font-bold text-slate-800">
                   {SIDE[suggestedSide].short}
                 </span>
               )}
@@ -484,7 +484,7 @@ export default function ChildTimeline({
       {/* timeline */}
       <div className="px-5">
         {grouped.length === 0 && (
-          <p className="mt-10 text-center text-sm text-gray-400">
+          <p className="mt-10 text-center text-sm text-ink-faint">
             No entries yet. Tap a button above to log the first one.
           </p>
         )}
@@ -494,11 +494,11 @@ export default function ChildTimeline({
             <div key={day} className="mb-6">
               <button
                 onClick={() => toggleDay(day)}
-                className="tap mb-2 mt-4 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400"
+                className="tap mb-2 mt-4 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-ink-faint"
               >
                 <span className="flex items-center gap-1">
                   {day}
-                  {collapsed && <span className="font-normal normal-case tracking-normal text-gray-300">· {items.length}</span>}
+                  {collapsed && <span className="font-normal normal-case tracking-normal text-ink-faint">· {items.length}</span>}
                 </span>
                 <span className={`transition-transform ${collapsed ? "-rotate-90" : ""}`}>▾</span>
               </button>
@@ -519,7 +519,7 @@ export default function ChildTimeline({
           <button
             onClick={loadOlder}
             disabled={loadingMore}
-            className="tap mx-auto mb-8 mt-2 block rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 active:bg-gray-50 disabled:opacity-50"
+            className="tap mx-auto mb-8 mt-2 block rounded-full border border-line px-4 py-2 text-sm font-medium text-ink-soft active:bg-surface-muted disabled:opacity-50"
           >
             {loadingMore ? "Loading…" : "Load older"}
           </button>
@@ -590,12 +590,12 @@ function NapBanner({
     : `in ${humanDuration(diffMin * 60)}`;
   return (
     <div className="px-5 pt-2">
-      <div className={`flex items-center justify-between rounded-2xl px-4 py-3 ${overdue ? "bg-amber-100" : "bg-indigo-50"}`}>
+      <div className={`flex items-center justify-between rounded-2xl px-4 py-3 ${overdue ? "bg-amber-100 dark:bg-amber-950/40" : "bg-indigo-50 dark:bg-indigo-950/40"}`}>
         <div>
-          <p className="text-sm font-semibold text-gray-800">
+          <p className="text-sm font-semibold text-ink">
             😴 Next nap ~{when}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ink-soft">
             {rel} · ~{wakeWindowMin}m awake{personalized ? ` · tuned to ${childName}` : ""}
           </p>
         </div>
@@ -624,10 +624,10 @@ function MoreTrackers({ onPick }: { onPick: (t: EventType) => void }) {
               <button
                 key={type}
                 onClick={() => onPick(type)}
-                className="tap flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border border-gray-200 active:bg-gray-50"
+                className="tap flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border border-line active:bg-surface-muted"
               >
                 <span className="text-2xl">{def.emoji}</span>
-                <span className="text-[11px] font-medium text-gray-600">{def.label}</span>
+                <span className="text-[11px] font-medium text-ink-soft">{def.label}</span>
               </button>
             );
           })}
@@ -667,17 +667,17 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="tap flex w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 text-left active:bg-gray-50"
+      className="tap flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-left active:bg-surface-muted"
     >
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${def.color} text-white`}>
         {def.emoji}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{def.label}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{def.label}</p>
         {/* time (left) and duration (right) — same size & weight, space-between */}
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-lg font-bold leading-tight text-gray-900">{timeText}</span>
-          {duration && <span className="shrink-0 text-lg font-bold leading-tight text-gray-500">{duration}</span>}
+          <span className="text-lg font-bold leading-tight text-ink">{timeText}</span>
+          {duration && <span className="shrink-0 text-lg font-bold leading-tight text-ink-soft">{duration}</span>}
         </div>
         {isNursing ? (
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -687,7 +687,7 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
                 {seconds ? ` · ${sideDuration(seconds)}` : ""}
               </span>
             ))}
-            {e.note && <span className="truncate text-xs text-gray-400">{e.note}</span>}
+            {e.note && <span className="truncate text-xs text-ink-faint">{e.note}</span>}
           </div>
         ) : isDiaper && diaperKindsOn.length ? (
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -696,10 +696,10 @@ function TimelineItem({ e, onClick }: { e: EventRow; onClick: () => void }) {
                 {DIAPER[k].label}
               </span>
             ))}
-            {e.note && <span className="truncate text-xs text-gray-400">{e.note}</span>}
+            {e.note && <span className="truncate text-xs text-ink-faint">{e.note}</span>}
           </div>
         ) : (
-          comment && <p className="mt-0.5 truncate text-xs text-gray-400">{comment}</p>
+          comment && <p className="mt-0.5 truncate text-xs text-ink-faint">{comment}</p>
         )}
       </div>
     </button>
@@ -767,17 +767,17 @@ function DaySummary({ items }: { items: EventRow[] }) {
     <div className="mb-3 pl-3">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="tap flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400"
+        className="tap flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-faint"
       >
         Stats
         <span className={`transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
       {open && (
-        <dl className="mt-2 space-y-1 rounded-xl bg-gray-50 px-3 py-2">
+        <dl className="mt-2 space-y-1 rounded-xl bg-surface-muted px-3 py-2">
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between text-xs">
-              <dt className="text-gray-500">{label}</dt>
-              <dd className="font-medium tabular-nums text-gray-800">{value}</dd>
+              <dt className="text-ink-soft">{label}</dt>
+              <dd className="font-medium tabular-nums text-ink">{value}</dd>
             </div>
           ))}
         </dl>

@@ -23,7 +23,7 @@ export default function InviteAccept({
       <div className="px-6 py-16 text-center">
         <p className="text-4xl">🙈</p>
         <h1 className="mt-4 text-xl font-bold">Invite not available</h1>
-        <p className="mt-2 text-sm text-gray-500">This link is invalid, already used, or expired.</p>
+        <p className="mt-2 text-sm text-ink-soft">This link is invalid, already used, or expired.</p>
         <Link href="/" className="mt-6 inline-block font-semibold text-brand-600">
           Go home
         </Link>
@@ -50,7 +50,7 @@ export default function InviteAccept({
       <h1 className="mt-4 text-2xl font-bold">
         {info.inviter} invited you to help track {info.childName}
       </h1>
-      <p className="mt-2 text-sm text-gray-500">
+      <p className="mt-2 text-sm text-ink-soft">
         You&apos;ll share one live timeline — feeds, sleep, diapers and more.
       </p>
 
@@ -71,7 +71,7 @@ export default function InviteAccept({
           </Link>
           <Link
             href={`/login?next=/invite/${token}`}
-            className="tap block w-full rounded-xl border border-gray-300 py-3.5 font-semibold text-gray-700"
+            className="tap block w-full rounded-xl border border-line py-3.5 font-semibold text-ink"
           >
             I already have an account
           </Link>

@@ -5,9 +5,9 @@ type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
   primary: "bg-brand-600 text-white active:bg-brand-700",
-  secondary: "border border-gray-300 text-gray-700 active:bg-gray-50",
+  secondary: "border border-line text-ink active:bg-surface-muted",
   ghost: "text-brand-600 active:text-brand-700",
-  danger: "border border-red-300 text-red-600 active:bg-red-50",
+  danger: "border border-red-300 text-red-600 active:bg-red-50 dark:active:bg-red-950/40",
   destructive: "bg-red-600 text-white active:bg-red-700",
 };
 

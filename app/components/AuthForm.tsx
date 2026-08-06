@@ -32,7 +32,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <div className="flex min-h-dvh flex-col justify-center px-6 py-10">
       <h1 className="mb-1 text-3xl font-bold text-brand-600">🐣 Nestling</h1>
-      <p className="mb-8 text-sm text-gray-500">
+      <p className="mb-8 text-sm text-ink-soft">
         {isSignup ? "Create an account to start tracking." : "Welcome back."}
       </p>
       <form onSubmit={submit} className="space-y-4">
@@ -65,7 +65,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {isSignup ? "Create account" : "Log in"}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="mt-6 text-center text-sm text-ink-soft">
         {isSignup ? (
           <>
             Already have an account?{" "}

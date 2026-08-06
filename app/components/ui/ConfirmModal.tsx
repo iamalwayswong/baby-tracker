@@ -30,9 +30,9 @@ export default function ConfirmModal({
   return (
     <div className="fixed inset-0 z-[60] mx-auto flex max-w-md items-center justify-center px-6" onClick={onCancel}>
       <div className="absolute inset-0 bg-black/40" />
-      <div className="relative w-full rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full rounded-2xl bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold">{title}</h3>
-        {message && <p className="mt-1 text-sm text-gray-500">{message}</p>}
+        {message && <p className="mt-1 text-sm text-ink-soft">{message}</p>}
         <div className="mt-5 flex gap-2">
           <Button variant="secondary" fullWidth onClick={onCancel}>
             {cancelLabel}

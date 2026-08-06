@@ -3,9 +3,9 @@ import { cn } from "@/lib/cn";
 type Tone = "default" | "danger" | "brand";
 
 const TONES: Record<Tone, string> = {
-  default: "text-gray-400 active:text-gray-600",
-  danger: "text-gray-400 active:text-red-600",
-  brand: "text-gray-400 active:text-brand-600",
+  default: "text-ink-faint active:text-ink-soft",
+  danger: "text-ink-faint active:text-red-600",
+  brand: "text-ink-faint active:text-brand-600",
 };
 
 export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
