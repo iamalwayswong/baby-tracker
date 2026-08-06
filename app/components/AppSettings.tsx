@@ -30,9 +30,8 @@ export default function AppSettings({ user }: { user: { name: string; email: str
 
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Appearance</h2>
       <ThemeToggle />
-      <p className="mb-6 mt-2 text-xs text-ink-faint">Dark by default — easier on the eyes for night feeds.</p>
 
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Account</h2>
+      <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-ink-faint">Account</h2>
       <Card>
         <p className="font-medium">{user.name}</p>
         <p className="text-sm text-ink-soft">{user.email}</p>

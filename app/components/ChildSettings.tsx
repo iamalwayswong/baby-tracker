@@ -126,10 +126,9 @@ export default function ChildSettings({
 
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Appearance</h2>
       <ThemeToggle />
-      <p className="mb-8 mt-2 text-xs text-ink-faint">Dark by default — easier on the eyes for night feeds.</p>
 
       {/* Edit details */}
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Details</h2>
+      <h2 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-ink-faint">Details</h2>
       <Card>
         <form onSubmit={saveDetails} className="space-y-3">
           <Field label="Name">

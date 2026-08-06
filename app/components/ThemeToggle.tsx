@@ -1,39 +1,65 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ChoiceChips } from "@/app/components/ui";
+import { getPref, setPref, locate, getCachedCoords, geoPermission, ThemePref } from "@/lib/theme";
 
-type Theme = "dark" | "light";
-
-// Apply + persist the theme. Dark is the default (no `.light` class); light is
-// opted in. Kept in sync with the no-flash init script in app/layout.tsx.
-function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("light", theme === "light");
-  try {
-    localStorage.setItem("theme", theme);
-  } catch {}
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", theme === "light" ? "#f5f3ff" : "#0e0e13");
-}
-
+// Auto / Dark / Light. Auto follows local sunrise/sunset (see lib/theme +
+// ThemeController); picking it requests location once (a user gesture, so the
+// permission prompt is expected here rather than a surprise on page load).
 export default function ThemeToggle() {
-  // Start from the class the init script already set, so the control matches
-  // what's on screen (avoids a flip on hydration).
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [pref, setPrefState] = useState<ThemePref>("auto");
+  const [locating, setLocating] = useState(false);
+  const [status, setStatus] = useState("");
+
   useEffect(() => {
-    setTheme(document.documentElement.classList.contains("light") ? "light" : "dark");
+    setPrefState(getPref());
+    // Reflect where auto is getting its light/dark from.
+    (async () => {
+      if (getCachedCoords()) return setStatus("Using your location for sunrise/sunset.");
+      const perm = await geoPermission();
+      setStatus(perm === "denied" ? "Location off — following your system setting." : "");
+    })();
   }, []);
 
+  async function choose(next: ThemePref) {
+    setPrefState(next);
+    setPref(next);
+    if (next === "auto") {
+      if (getCachedCoords()) {
+        setStatus("Using your location for sunrise/sunset.");
+      } else {
+        setLocating(true);
+        const coords = await locate(); // prompts if not yet decided
+        setLocating(false);
+        setStatus(coords ? "Using your location for sunrise/sunset." : "Location off — following your system setting.");
+      }
+    } else {
+      setStatus("");
+    }
+    window.dispatchEvent(new Event("themechange")); // ThemeController re-applies
+  }
+
+  const hint =
+    pref === "auto"
+      ? locating
+        ? "Getting your location…"
+        : status
+      : pref === "dark"
+      ? "Always dark."
+      : "Always light.";
+
   return (
-    <ChoiceChips
-      options={[
-        { value: "dark", label: "🌙 Dark" },
-        { value: "light", label: "☀️ Light" },
-      ]}
-      value={theme}
-      onChange={(v) => {
-        setTheme(v as Theme);
-        applyTheme(v as Theme);
-      }}
-    />
+    <>
+      <ChoiceChips
+        options={[
+          { value: "auto", label: "Auto" },
+          { value: "dark", label: "🌙 Dark" },
+          { value: "light", label: "☀️ Light" },
+        ]}
+        value={pref}
+        onChange={(v) => choose(v as ThemePref)}
+      />
+      {hint && <p className="mt-2 text-xs text-ink-faint">{hint}</p>}
+    </>
   );
 }
