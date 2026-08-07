@@ -271,9 +271,9 @@ export default function ChildTimeline({
   }, [events]);
   const suggestedSide: Side = lastSide === "left" ? "right" : "left";
 
-  // Time since the last milk feed (breast/bottle). Stores the timestamp; the
-  // "ago" label is computed live in the component as `now` ticks. A nursing
-  // session in progress reads as "feeding now".
+  // Time since the START of the last milk feed (breast/bottle). Stores the
+  // timestamp; the "ago" label is computed live in the component as `now` ticks.
+  // A nursing session in progress reads as "feeding now".
   const lastFeed = useMemo(() => {
     let ms: number | null = null;
     let feedingNow = false;
@@ -283,7 +283,7 @@ export default function ChildTimeline({
         feedingNow = true;
         continue;
       }
-      const t = e.end_time ? +new Date(e.end_time) : +new Date(e.start_time);
+      const t = +new Date(e.start_time);
       if (ms === null || t > ms) ms = t;
     }
     return { ms, feedingNow };
