@@ -19,7 +19,6 @@ import {
   liveNursing,
 } from "@/lib/events";
 import { clockTime, dayLabel, humanDuration, stopwatch, timeAgo } from "@/lib/format";
-import { predictNap } from "@/lib/predict";
 import { useChildSocket } from "./useChildSocket";
 import NursingSheet from "./NursingSheet";
 import LogSheet from "./LogSheet";
@@ -272,19 +271,32 @@ export default function ChildTimeline({
   }, [events]);
   const suggestedSide: Side = lastSide === "left" ? "right" : "left";
 
-  const sleepInProgress = inProgress.find((e) => e.type === "sleep");
-
-  // next-nap prediction (recomputes as `now` ticks)
-  const nap = useMemo(
-    () => predictNap(events, child.birth_date, new Date(now)),
-    [events, child.birth_date, now]
-  );
+  // Time since the last milk feed (breast/bottle). Stores the timestamp; the
+  // "ago" label is computed live in the component as `now` ticks. A nursing
+  // session in progress reads as "feeding now".
+  const lastFeed = useMemo(() => {
+    let ms: number | null = null;
+    let feedingNow = false;
+    for (const e of events) {
+      if (e.type !== "feed_breast" && e.type !== "feed_bottle") continue;
+      if (!e.end_time && EVENT_DEFS[e.type]?.kind === "duration") {
+        feedingNow = true;
+        continue;
+      }
+      const t = e.end_time ? +new Date(e.end_time) : +new Date(e.start_time);
+      if (ms === null || t > ms) ms = t;
+    }
+    return { ms, feedingNow };
+  }, [events]);
 
   async function quickTap(type: EventType) {
     if (type === "feed_breast") return setSheet({ kind: "nursing" });
-    if (type === "sleep") {
-      if (sleepInProgress) return stopTimer(sleepInProgress.id);
-      return void logEvent("sleep", {}); // starts a running timer
+    // Any other quick duration event (Sleep, Gas) is a start/stop timer: tap to
+    // start, tap again to stop the one that's running.
+    if (EVENT_DEFS[type].kind === "duration") {
+      const running = inProgress.find((e) => e.type === type);
+      if (running) return stopTimer(running.id);
+      return void logEvent(type, {});
     }
     setSheet({ kind: "log", type });
   }
@@ -445,16 +457,17 @@ export default function ChildTimeline({
         </div>
       )}
 
-      {/* next-nap prediction */}
-      {nap.state === "predict" && <NapBanner nextWindowMs={nap.nextWindowMs} wakeWindowMin={nap.wakeWindowMin} personalized={nap.personalized} childName={child.name} nowMs={now} />}
+      {/* time since last feed */}
+      <LastFeed lastMs={lastFeed.ms} feedingNow={lastFeed.feedingNow} nowMs={now} />
 
       {/* quick log bar */}
       <div className="grid grid-cols-4 gap-3 px-5 py-4">
         {QUICK_EVENT_TYPES.map((type) => {
           const def = EVENT_DEFS[type];
-          const isActiveSleep = type === "sleep" && sleepInProgress;
+          // A running quick timer (Sleep, Gas) shows "Stop"; nursing has its own labels.
+          const running = def.kind === "duration" && type !== "feed_breast" && inProgress.some((e) => e.type === type);
           const label =
-            isActiveSleep ? "Stop"
+            running ? "Stop"
             : type === "feed_breast" && nursingSession ? "Nursing…"
             : type === "feed_breast" && lastSide ? `Nurse ${SIDE[suggestedSide].short}`
             : def.label;
@@ -567,39 +580,24 @@ export default function ChildTimeline({
   );
 }
 
-function NapBanner({
-  nextWindowMs,
-  wakeWindowMin,
-  personalized,
-  childName,
-  nowMs,
-}: {
-  nextWindowMs: number;
-  wakeWindowMin: number;
-  personalized: boolean;
-  childName: string;
-  nowMs: number;
-}) {
-  const diffMin = Math.round((nextWindowMs - nowMs) / 60000);
-  const overdue = diffMin < 0;
-  const when = clockTime(new Date(nextWindowMs).toISOString());
-  const rel = overdue
-    ? `window open · ${humanDuration(-diffMin * 60)} ago`
-    : diffMin === 0
-    ? "window opening now"
-    : `in ${humanDuration(diffMin * 60)}`;
+function LastFeed({ lastMs, feedingNow, nowMs }: { lastMs: number | null; feedingNow: boolean; nowMs: number }) {
+  const sec = lastMs != null ? Math.max(0, (nowMs - lastMs) / 1000) : 0;
+  const ago = sec < 60 ? "just now" : `${humanDuration(sec)} ago`;
   return (
     <div className="px-5 pt-2">
-      <div className={`flex items-center justify-between rounded-2xl px-4 py-3 ${overdue ? "bg-amber-100 dark:bg-amber-950/40" : "bg-indigo-50 dark:bg-indigo-950/40"}`}>
-        <div>
-          <p className="text-sm font-semibold text-ink">
-            😴 Next nap ~{when}
-          </p>
-          <p className="text-xs text-ink-soft">
-            {rel} · ~{wakeWindowMin}m awake{personalized ? ` · tuned to ${childName}` : ""}
-          </p>
-        </div>
-        <span className={`text-2xl ${overdue ? "" : "opacity-60"}`}>{overdue ? "🥱" : "🔮"}</span>
+      <div className="flex items-center gap-2 rounded-2xl bg-surface-muted px-4 py-3 text-sm text-ink-soft">
+        <span className="text-xl">🍼</span>
+        <p>
+          {feedingNow ? (
+            <span className="font-semibold text-ink">Feeding now</span>
+          ) : lastMs == null ? (
+            "No feeds logged yet"
+          ) : (
+            <>
+              Last feed <span className="font-semibold text-ink">{ago}</span>
+            </>
+          )}
+        </p>
       </div>
     </div>
   );
